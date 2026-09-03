@@ -17,7 +17,7 @@ async function getGeminiConfig() {
   const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   let apiKey = process.env.GEMINI_API_KEY || '';
-  let model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  let model = process.env.GEMINI_MODEL || 'gemini-3.7-flash';
 
   // If Supabase service credentials are provided, fetch latest settings from app_settings
   if (supabaseUrl && serviceKey) {

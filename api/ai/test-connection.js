@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { apiKey, model = 'gemini-2.0-flash' } = req.body || {};
+    const { apiKey, model = 'gemini-3.7-flash' } = req.body || {};
 
     if (!apiKey) {
       return res.status(400).json({ error: 'API key is required for testing' });
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
-      model: model || 'gemini-2.0-flash',
+      model: model || 'gemini-3.7-flash',
       contents: 'Hello! Respond with {"status": "ok", "message": "Gemini connection successful"}',
       config: {
         responseMimeType: 'application/json',
