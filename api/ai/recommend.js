@@ -17,7 +17,7 @@ async function getGeminiConfig() {
   const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   let apiKey = process.env.GEMINI_API_KEY || '';
-  let model = process.env.GEMINI_MODEL || 'gemini-3.7-flash';
+  let model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
   // If Supabase service credentials are provided, fetch latest settings from app_settings
   if (supabaseUrl && serviceKey) {
@@ -111,13 +111,43 @@ Respond entirely in ${langLabel}. Return ONLY a valid JSON object with the follo
 
 Ensure the output is clean parseable JSON without markdown wrapping if possible.`;
 
-    const response = await ai.models.generateContent({
-      model: model || 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
+    const tryModels = [
+      model,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+    ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+    let lastError = null;
+    let response = null;
+
+    for (const m of tryModels) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          response = await ai.models.generateContent({
+            model: m,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
+          if (response?.text) break;
+        } catch (e) {
+          lastError = e;
+          const msg = e.message || '';
+          // If high demand (503) or rate limit (429), pause briefly and retry
+          if (msg.includes('503') || msg.includes('429') || e.status === 503) {
+            await new Promise((r) => setTimeout(r, 750));
+          } else {
+            break;
+          }
+        }
+      }
+      if (response?.text) break;
+    }
+
+    if (!response?.text) {
+      throw lastError || new Error('No response from AI models');
+    }
 
     let responseText = response.text || '';
     // Strip markdown code block markers if present

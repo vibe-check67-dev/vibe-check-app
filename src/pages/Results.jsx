@@ -48,20 +48,33 @@ export default function Results() {
       setCheckin(updated);
     } catch (err) {
       console.error('AI generation error:', err);
-      setAiError(err.message || 'Could not generate recommendations');
-      // If AI failed, give friendly fallback recommendations so user isn't stuck
+      const isOverloaded = err.message?.includes('503') || err.message?.includes('high demand') || err.message?.includes('429');
+      const friendlyError = isOverloaded
+        ? (lang === 'th' ? 'เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นชั่วคราว ระบบจึงแสดงคำแนะนำเริ่มต้นสำหรับคุณ' : 'AI service is temporarily busy. Showing wellness recommendations.')
+        : (lang === 'th' ? 'เกิดข้อผิดพลาดในการสร้างคำแนะนำ ระบบจึงแสดงคำแนะนำเริ่มต้นสำหรับคุณ' : 'Could not generate custom AI recommendations. Showing default wellness suggestions.');
+      
+      setAiError(friendlyError);
+
+      // Give friendly fallback recommendations so user always gets actionable advice
       const fallbacks = {
-        activity: lang === 'th' ? 'พักสายตา 10 นาที — ผ่อนคลายสมองและสายตา' : 'Take a 10-minute walk — clear your mind',
-        playlist: lang === 'th' ? 'Lo-Fi Chill Beats — ช่วยสร้างสมาธิและความสงบ' : 'Acoustic Morning — gentle and uplifting',
-        food: lang === 'th' ? '🍽️ ข้าวต้มอุ่นๆ — สบายท้อง\n🥤 น้ำผลไม้สด — เติมความสดชื่น' : '🍽️ Warm Soup — comforting and light\n🥤 Fresh Smoothie — energizing boost',
-        message: lang === 'th' ? 'ทุกความรู้สึกมีคุณค่า — ค่อยๆ ก้าวไปทีละก้าว' : 'Take it one step at a time — you are doing great',
-        journal_prompt: lang === 'th' ? 'สิ่งหนึ่งที่คุณรู้สึกขอบคุณในวันนี้คืออะไร?' : 'What is one thing you feel grateful for today?',
+        ai_activity: lang === 'th' ? 'พักสายตา 10 นาที — ผ่อนคลายสมองและสายตาจากการจ้องจอ' : 'Take a 10-minute walk — clear your mind and stretch',
+        ai_playlist: lang === 'th' ? 'Lo-Fi Chill Beats — เสียงดนตรีช่วยสร้างสมาธิและความสงบ' : 'Acoustic Morning — gentle, uplifting acoustic guitar',
+        ai_food: lang === 'th' ? '🍽️ ข้าวต้มอุ่นๆ — ย่อยง่าย สบายท้อง\n🥤 น้ำผลไม้สด — เติมความสดชื่นและวิตามิน' : '🍽️ Warm Soup — comforting, nourishing, and light\n🥤 Fresh Smoothie — natural energizing vitamin boost',
+        ai_message: lang === 'th' ? 'ทุกความรู้สึกมีคุณค่า — ค่อยๆ ก้าวไปทีละก้าว ไม่ต้องรีบร้อน' : 'Take it one step at a time — you are doing wonderful',
+        ai_journal_prompt: lang === 'th' ? 'สิ่งหนึ่งที่คุณรู้สึกขอบคุณหรือภูมิใจในวันนี้คืออะไร?' : 'What is one thing you feel grateful for today?',
       };
 
       setCheckin((prev) => ({
         ...prev,
         ...fallbacks,
       }));
+
+      // Persist fallbacks to DB so they remain on reload
+      try {
+        await updateCheckin(item.id, fallbacks);
+      } catch (saveErr) {
+        console.warn('Could not save fallbacks to DB:', saveErr);
+      }
     } finally {
       setGenerating(false);
       setLoading(false);
