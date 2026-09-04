@@ -33,6 +33,8 @@ export default function Checkin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
   const steps = [
     {
       key: 'energy',
@@ -86,9 +88,15 @@ export default function Checkin() {
 
   const currentStep = steps[step];
   const isLastEmojiStep = step === steps.length - 1;
-  const isTextStep = step === steps.length;
+  const isTextStep = step >= steps.length; // use >= to be safe
 
   const handleSubmit = async () => {
+    // Check if any required field is missing before submitting
+    if (!energy || !stress || !social || !sleep) {
+      setError(t('pleaseAnswerAll') || 'Please answer all required questions before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
     try {
@@ -110,7 +118,11 @@ export default function Checkin() {
       navigate(`/results/${created.id}`);
     } catch (err) {
       console.error('Checkin submission error:', err);
-      setError(err.message || 'Failed to save check-in');
+      if (err.message?.includes('violates check constraint')) {
+        setError(t('pleaseAnswerAll') || 'Please answer all required questions before submitting.');
+      } else {
+        setError(err.message || 'Failed to save check-in');
+      }
       setIsSubmitting(false);
     }
   };
@@ -138,7 +150,7 @@ export default function Checkin() {
       )}
 
       <AnimatePresence mode="wait">
-        {!isTextStep ? (
+        {!isTextStep && currentStep ? (
           <motion.div
             key={step}
             initial={{ opacity: 0, y: 20 }}
@@ -153,14 +165,13 @@ export default function Checkin() {
               title={currentStep.title}
               value={currentStep.value}
               onChange={(val) => {
+                if (isTransitioning) return;
+                setIsTransitioning(true);
                 currentStep.onChange(val);
                 // Auto-advance after selection with a small delay
                 setTimeout(() => {
-                  if (isLastEmojiStep) {
-                    setStep(steps.length);
-                  } else {
-                    setStep((s) => s + 1);
-                  }
+                  setStep((s) => Math.min(s + 1, steps.length));
+                  setIsTransitioning(false);
                 }, 300);
               }}
             />
@@ -204,8 +215,9 @@ export default function Checkin() {
       {/* Back button */}
       {step > 0 && (
         <button
-          onClick={() => setStep((s) => s - 1)}
-          className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          disabled={isTransitioning}
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
         >
           ← {t('back')}
         </button>

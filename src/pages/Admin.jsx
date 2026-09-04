@@ -80,7 +80,7 @@ export default function Admin() {
     };
   }, [loadAdminData]);
 
-  if (loading) {
+  if (loading && checkins.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-brand-600" />

@@ -192,7 +192,7 @@ export async function updateAppSetting(key, value) {
 /**
  * Request AI recommendation via Vercel Serverless Function
  */
-export async function fetchAIRecommendations(checkinData, lang = 'en') {
+export async function fetchAIRecommendations(checkinData, lang = 'en', profile = null) {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token || '';
 
@@ -204,6 +204,7 @@ export async function fetchAIRecommendations(checkinData, lang = 'en') {
     },
     body: JSON.stringify({
       checkin: checkinData,
+      profile,
       lang,
     }),
   });

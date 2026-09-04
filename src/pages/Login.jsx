@@ -37,7 +37,11 @@ export default function Login() {
     try {
       await loginWithGoogle();
     } catch (err) {
-      setError(err.message || "Failed to sign in with Google");
+      if (err.message?.includes('provider is not enabled') || err.message?.includes('client_id')) {
+        setError(t('googleAuthNotConfigured') || "Google Auth is not configured. Please enable it in the Supabase Dashboard.");
+      } else {
+        setError(err.message || "Failed to sign in with Google");
+      }
     }
   };
 

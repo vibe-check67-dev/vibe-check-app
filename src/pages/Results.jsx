@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Loader2, Check, Share2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLang } from '@/context/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import RecommendationCard from '@/components/results/RecommendationCard';
 import MoodShareCard from '@/components/results/MoodShareCard';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { getCheckinById, updateCheckin, fetchAIRecommendations } from '@/lib/dat
 export default function Results() {
   const { id } = useParams();
   const { t, lang } = useLang();
+  const { profile } = useAuth();
   const [checkin, setCheckin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -27,7 +29,7 @@ export default function Results() {
     setAiError('');
 
     try {
-      const result = await fetchAIRecommendations(item, targetLang || lang);
+      const result = await fetchAIRecommendations(item, targetLang || lang, profile);
 
       await updateCheckin(item.id, {
         ai_activity: result.activity,
@@ -79,7 +81,7 @@ export default function Results() {
       setGenerating(false);
       setLoading(false);
     }
-  }, [lang]);
+  }, [lang, profile]);
 
   const loadCheckin = useCallback(async () => {
     setLoading(true);

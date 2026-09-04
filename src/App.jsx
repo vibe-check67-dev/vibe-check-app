@@ -19,6 +19,7 @@ import Checkin from '@/pages/Checkin';
 import Results from '@/pages/Results';
 import History from '@/pages/History';
 import Admin from '@/pages/Admin';
+import Settings from '@/pages/Settings';
 
 const AuthenticatedRoutes = () => {
   const { isLoadingAuth } = useAuth();
@@ -46,6 +47,7 @@ const AuthenticatedRoutes = () => {
           <Route path="/checkin" element={<Checkin />} />
           <Route path="/results/:id" element={<Results />} />
           <Route path="/history" element={<History />} />
+          <Route path="/settings" element={<Settings />} />
           
           {/* Admin Protected Route */}
           <Route element={<ProtectedRoute adminOnly={true} />}>

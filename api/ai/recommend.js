@@ -17,7 +17,7 @@ async function getGeminiConfig() {
   const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   let apiKey = process.env.GEMINI_API_KEY || '';
-  let model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  let model = process.env.GEMINI_MODEL || 'gemini-3.0-flash';
 
   // If Supabase service credentials are provided, fetch latest settings from app_settings
   if (supabaseUrl && serviceKey) {
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { checkin, lang = 'en' } = req.body || {};
+    const { checkin, profile, lang = 'en' } = req.body || {};
 
     if (!checkin) {
       return res.status(400).json({ error: 'Missing checkin data in request body' });
@@ -88,6 +88,15 @@ export default async function handler(req, res) {
     const creativityInstruction =
       'Your response must feel warm, personal, and creative — never generic or robotic. Vary your sentence structure, tone, and word choice. Avoid repeating the same phrases across sessions. Write as if a close friend is speaking — casual, genuine, and specific to what the user is experiencing right now.';
 
+    const profileContext = profile ? `
+User Personal Profile (Use this to customize your recommendations, respect medical restrictions and allergies strictly):
+- Physical info: ${[profile.weight && `Weight: ${profile.weight}kg`, profile.height && `Height: ${profile.height}cm`, profile.biological_sex && `Biological sex: ${profile.biological_sex}`].filter(Boolean).join(', ') || 'Not specified'}
+- Medical/Diseases: ${profile.diseases || 'None reported'}
+- Food Allergies: ${profile.food_allergies || 'None'} (STRICT REQUIREMENT: DO NOT suggest any food containing these allergens!)
+- Disliked Foods: ${profile.dislikes_food || 'None'} (DO NOT recommend these foods)
+- Disliked Music: ${profile.dislikes_music || 'None'} (DO NOT recommend this style of music)
+- Disliked Activities: ${profile.dislikes_activities || 'None'} (DO NOT recommend these activities)` : '';
+
     const prompt = `You are a wellness coach for a 60-second mood check-in. A user just checked in:
 - Energy: ${checkin.energy || 3}/5
 - Stress: ${checkin.stress || 3}/5
@@ -97,6 +106,7 @@ export default async function handler(req, res) {
 - Outlook on tomorrow: ${presence(checkin.outlook)}
 - Time of day: ${checkin.time_of_day || 'morning'}
 - Note: "${checkin.free_text || 'none'}"
+${profileContext}
 
 ${creativityInstruction}
 
@@ -113,8 +123,7 @@ Ensure the output is clean parseable JSON without markdown wrapping if possible.
 
     const tryModels = [
       model,
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
+      'gemini-3.0-flash',
     ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
     let lastError = null;
