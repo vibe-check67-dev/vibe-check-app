@@ -7,14 +7,15 @@ import { useLang } from '@/context/LanguageContext';
 import { getAppSettings, updateAppSetting } from '@/lib/database';
 
 const GEMINI_MODELS = [
-  { id: 'gemini-3.0-flash', label: '3.X flash', desc: 'Fast, high quality, current standard' },
-  { id: 'gemini-3.0-flash-lite', label: '3.X flash lite', desc: 'Faster, lightweight model' },
+  { id: 'gemini-3.7-flash', label: '3.X flash', desc: 'Gemini 3.7 Flash - Fast, high quality, latest standard' },
+  { id: 'gemini-3.5-flash-lite', label: '3.X flash lite', desc: 'Gemini 3.5 Flash Lite - Faster, lightweight model' },
+  { id: 'gemini-3.6-flash', label: '3.X flash (3.6)', desc: 'Gemini 3.6 Flash - Preview model' },
 ];
 
 export default function AdminAISettings() {
   const { t, lang } = useLang();
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gemini-3.0-flash');
+  const [model, setModel] = useState('gemini-3.7-flash');
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

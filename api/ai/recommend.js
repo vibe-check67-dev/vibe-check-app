@@ -17,7 +17,7 @@ async function getGeminiConfig() {
   const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   let apiKey = process.env.GEMINI_API_KEY || '';
-  let model = process.env.GEMINI_MODEL || 'gemini-3.0-flash';
+  let model = process.env.GEMINI_MODEL || 'gemini-3.7-flash';
 
   // If Supabase service credentials are provided, fetch latest settings from app_settings
   if (supabaseUrl && serviceKey) {
@@ -123,7 +123,10 @@ Ensure the output is clean parseable JSON without markdown wrapping if possible.
 
     const tryModels = [
       model,
-      'gemini-3.0-flash',
+      'gemini-3.7-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.6-flash',
+      'gemini-2.5-flash',
     ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
     let lastError = null;
