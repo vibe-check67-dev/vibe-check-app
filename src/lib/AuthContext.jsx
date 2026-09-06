@@ -118,6 +118,15 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const loginWithGoogleIdToken = async (token) => {
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token,
+    });
+    if (error) throw error;
+    return data;
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -167,6 +176,7 @@ export const AuthProvider = ({ children }) => {
         loginWithEmail,
         signUpWithEmail,
         loginWithGoogle,
+        loginWithGoogleIdToken,
         logout,
         resetPassword,
         updatePassword,

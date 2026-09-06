@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/context/LanguageContext";
 
@@ -33,18 +34,6 @@ export default function Login() {
     }
   };
 
-  const handleGoogle = async () => {
-    try {
-      await loginWithGoogle();
-    } catch (err) {
-      if (err.message?.includes('provider is not enabled') || err.message?.includes('client_id')) {
-        setError(t('googleAuthNotConfigured') || "Google Auth is not configured. Please enable it in the Supabase Dashboard.");
-      } else {
-        setError(err.message || "Failed to sign in with Google");
-      }
-    }
-  };
-
   return (
     <AuthLayout
       icon={LogIn}
@@ -59,15 +48,7 @@ export default function Login() {
         </>
       }
     >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6 rounded-xl"
-        onClick={handleGoogle}
-        type="button"
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        {t('continueWithGoogle') || "Continue with Google"}
-      </Button>
+      <GoogleSignInButton text="signin" onError={setError} />
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">

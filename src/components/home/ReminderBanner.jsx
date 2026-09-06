@@ -64,7 +64,7 @@ export default function ReminderBanner({ hasCheckedInToday }) {
               {t('reminderBanner')}
             </p>
 
-            <div className="w-full flex gap-3">
+            <div className="w-full flex gap-3 mb-1">
               <Button
                 variant="outline"
                 className="flex-1 rounded-xl h-12"
@@ -79,6 +79,14 @@ export default function ReminderBanner({ hasCheckedInToday }) {
                 <Link to="/checkin">{t('startCheckin')}</Link>
               </Button>
             </div>
+
+            <Link
+              to="/settings"
+              onClick={handleDismiss}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline pt-2"
+            >
+              🔔 {lang === 'th' ? 'ตั้งค่าแจ้งเตือนเติมไฟเข้ามือถือ' : 'Configure Mobile Notifications'}
+            </Link>
           </motion.div>
         </div>
       )}

@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Save, LogOut, Loader2, Globe, Sparkles, Shield } from 'lucide-react';
+import { Save, LogOut, Loader2, Globe, Sparkles, Shield, Bell, BellOff, Send, Smartphone, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/context/LanguageContext';
 import { supabase } from '@/lib/supabase';
+import {
+  isPushSupported,
+  getCurrentPushSubscription,
+  subscribeToPush,
+  unsubscribeFromPush,
+  triggerTestPush,
+} from '@/lib/pushNotifications';
 
 export default function Settings() {
   const { user, profile, isAdmin, logout, refreshProfile } = useAuth();
@@ -16,6 +24,13 @@ export default function Settings() {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Push notifications state
+  const [pushSupported, setPushSupported] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testStatus, setTestStatus] = useState(null);
   
   const [formData, setFormData] = useState({
     weight: '',
@@ -41,7 +56,64 @@ export default function Settings() {
         dislikes_activities: profile.dislikes_activities || ''
       });
     }
+
+    // Check push support and current subscription
+    const supported = isPushSupported();
+    setPushSupported(supported);
+    if (supported) {
+      getCurrentPushSubscription().then((sub) => {
+        setPushEnabled(!!sub);
+      });
+    }
   }, [profile]);
+
+  const handleTogglePush = async (checked) => {
+    setPushLoading(true);
+    setTestStatus(null);
+    try {
+      if (checked) {
+        await subscribeToPush(user?.id);
+        setPushEnabled(true);
+        setTestStatus({
+          type: 'success',
+          message: lang === 'th' ? 'เปิดการแจ้งเตือนสำเร็จแล้ว! ระบบจะเตือนคุณทุกวันเวลา 20:00 น.' : 'Notifications enabled! We will remind you daily at 20:00.',
+        });
+      } else {
+        await unsubscribeFromPush(user?.id);
+        setPushEnabled(false);
+        setTestStatus({
+          type: 'info',
+          message: lang === 'th' ? 'ปิดการแจ้งเตือนแล้ว' : 'Notifications disabled.',
+        });
+      }
+    } catch (err) {
+      console.error('Push toggle error:', err);
+      alert(err.message || 'เกิดข้อผิดพลาดในการตั้งค่าการแจ้งเตือน');
+      setPushEnabled(!checked);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleTestPushNotification = async () => {
+    setTestLoading(true);
+    setTestStatus(null);
+    try {
+      await triggerTestPush();
+      setTestStatus({
+        type: 'success',
+        message: lang === 'th' ? 'ส่งการแจ้งเตือนแล้ว! ลองดูที่แถบแจ้งเตือนด้านบนมือถือของคุณได้เลยครับ 🔥' : 'Test notification sent! Check your notification bar.',
+      });
+    } catch (err) {
+      console.error('Test push error:', err);
+      setTestStatus({
+        type: 'error',
+        message: err.message || (lang === 'th' ? 'ส่งการแจ้งเตือนไม่สำเร็จ' : 'Failed to send test notification'),
+      });
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -113,6 +185,97 @@ export default function Settings() {
           </Link>
         </Button>
       )}
+
+      {/* Push Notification Card */}
+      <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                <Bell className="w-4 h-4" />
+              </div>
+              <h2 className="text-base font-bold text-foreground">
+                {lang === 'th' ? 'การแจ้งเตือนเตือนเติมไฟบนมือถือ' : 'Mobile Push Reminders'}
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed pl-10">
+              {lang === 'th'
+                ? 'เตือนให้คุณมาเช็คอินอารมณ์วันละ 2 รอบ: 08:00 น. (ยามเช้า) และ 18:00 น. (ยามเย็น) แม้จะปิดหน้าเว็บอยู่'
+                : 'Reminds you to check-in twice daily: at 08:00 (morning) and 18:00 (evening), even when the browser is closed.'}
+            </p>
+          </div>
+
+          <div className="pt-1">
+            {pushLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            ) : (
+              <Switch
+                checked={pushEnabled}
+                onCheckedChange={handleTogglePush}
+                disabled={!pushSupported || pushLoading}
+              />
+            )}
+          </div>
+        </div>
+
+        {pushEnabled && (
+          <div className="pl-10 flex flex-wrap gap-2 pt-1">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/20">
+              ☀️ {lang === 'th' ? 'รอบเช้า: 08:00 น.' : 'Morning: 08:00'}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-orange-500/10 text-orange-700 dark:text-orange-400 px-2.5 py-1 rounded-lg border border-orange-500/20">
+              🔥 {lang === 'th' ? 'รอบเย็น: 18:00 น.' : 'Evening: 18:00'}
+            </span>
+          </div>
+        )}
+
+        {!pushSupported && (
+          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium">
+            {lang === 'th'
+              ? '⚠️ เบราว์เซอร์หรืออุปกรณ์นี้ไม่รองรับ Web Push Notification (หากใช้ iPhone ต้องกด Add to Home Screen ก่อน)'
+              : '⚠️ Web Push is not supported in this browser environment.'}
+          </div>
+        )}
+
+        {pushEnabled && (
+          <div className="pt-2 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{lang === 'th' ? 'ระบบพร้อมแจ้งเตือนตามเวลา' : 'Notifications scheduled'}</span>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleTestPushNotification}
+              disabled={testLoading}
+              className="w-full sm:w-auto rounded-xl text-xs flex items-center gap-2 border-primary/20 hover:bg-primary/5"
+            >
+              {testLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5 text-primary" />
+              )}
+              <span>{lang === 'th' ? 'ทดสอบส่งแจ้งเตือนเข้ามือถือ' : 'Send Test Push'}</span>
+            </Button>
+          </div>
+        )}
+
+        {testStatus && (
+          <div
+            className={`p-3 rounded-xl text-xs font-medium transition-all ${
+              testStatus.type === 'success'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                : testStatus.type === 'error'
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {testStatus.message}
+          </div>
+        )}
+      </div>
 
       <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-6">
         <div>
