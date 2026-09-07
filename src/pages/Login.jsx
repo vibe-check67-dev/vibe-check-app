@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/context/LanguageContext";

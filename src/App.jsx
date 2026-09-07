@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
@@ -7,6 +7,7 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PageNotFound from '@/lib/PageNotFound';
+import { getNotificationSettings, notifyServiceWorker, startClientReminderScheduler } from '@/lib/pushNotifications';
 
 // Pages
 import Login from '@/pages/Login';
@@ -22,7 +23,28 @@ import Admin from '@/pages/Admin';
 import Settings from '@/pages/Settings';
 
 const AuthenticatedRoutes = () => {
-  const { isLoadingAuth } = useAuth();
+  const { user, isLoadingAuth } = useAuth();
+
+  // Register service worker on app mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('SW register failed:', err);
+      });
+    }
+  }, []);
+
+  // Sync notification settings from Supabase and notify SW on user login
+  useEffect(() => {
+    if (user?.id) {
+      getNotificationSettings(user.id).then((settings) => {
+        if (settings && settings.enabled) {
+          notifyServiceWorker(settings);
+          startClientReminderScheduler(user.id);
+        }
+      });
+    }
+  }, [user?.id]);
 
   if (isLoadingAuth) {
     return (

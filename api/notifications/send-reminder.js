@@ -63,6 +63,7 @@ export default async function handler(req, res) {
       body: isMorning
         ? 'เช็คอินอารมณ์ 60 วินาทีในยามเช้า เพื่อเติมพลังรับวันใหม่กันเถอะ!'
         : 'เย็นแล้ว มาเช็คอินอารมณ์ 60 วินาที เพื่อรักษาสถิติไฟต่อเนื่องกันเถอะ!',
+      tag: 'vibe-check-reminder',
       url: '/checkin',
     });
 

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { subDays, subMonths, isAfter, parseISO } from 'date-fns';
-import { Users, FileText, UserCheck, Target, BarChart2, Table as TableIcon, RefreshCw, Radio } from 'lucide-react';
+import { Users, FileText, UserCheck, Target, BarChart2, Table as TableIcon, RefreshCw, Radio, Clock } from 'lucide-react';
 import { useLang } from '@/context/LanguageContext';
 import AdminCharts from '@/components/admin/AdminCharts';
+import AdminDailyChart from '@/components/admin/AdminDailyChart';
 import DataTable from '@/components/admin/DataTable';
 import AdminUsers from '@/components/admin/AdminUsers';
 import CSVImportExport from '@/components/admin/CSVImportExport';
@@ -10,7 +11,7 @@ import CSVImportExport from '@/components/admin/CSVImportExport';
 export default function AdminData({ checkins = [], profiles = [], onDataMutated, isRealtimeActive }) {
   const { t, lang } = useLang();
 
-  const [viewMode, setViewMode] = useState('graph'); // 'graph' | 'table' | 'users'
+  const [viewMode, setViewMode] = useState('graph'); // 'graph' | 'daily' | 'table' | 'users'
   const [selectedUserId, setSelectedUserId] = useState('all');
   const [timeScope, setTimeScope] = useState('all'); // 'week' | 'month' | 'all'
 
@@ -248,7 +249,7 @@ export default function AdminData({ checkins = [], profiles = [], onDataMutated,
           </div>
 
           {/* Mode Switcher Buttons */}
-          <div className="flex items-center p-1 rounded-xl bg-muted/60 border text-xs font-semibold self-start lg:self-auto">
+          <div className="flex flex-wrap items-center p-1 rounded-xl bg-muted/60 border text-xs font-semibold self-start lg:self-auto gap-1">
             <button
               onClick={() => setViewMode('graph')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
@@ -257,6 +258,15 @@ export default function AdminData({ checkins = [], profiles = [], onDataMutated,
             >
               <BarChart2 className="w-4 h-4 text-brand-600" />
               <span>{t('viewGraph')}</span>
+            </button>
+            <button
+              onClick={() => setViewMode('daily')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === 'daily' ? 'bg-card text-brand-700 shadow-2xs font-bold' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Clock className="w-4 h-4 text-primary" />
+              <span>{t('tabDailyTimeline') || 'Daily Timeline'}</span>
             </button>
             <button
               onClick={() => setViewMode('table')}
@@ -358,7 +368,22 @@ export default function AdminData({ checkins = [], profiles = [], onDataMutated,
 
       {/* ==================== 4. ACTIVE VIEW MODE ==================== */}
       {viewMode === 'graph' && (
-        <AdminCharts checkins={filteredCheckins} />
+        <div className="space-y-6">
+          <AdminCharts checkins={filteredCheckins} />
+          <AdminDailyChart
+            checkins={checkins}
+            profiles={profiles}
+            initialUserId={selectedUserId}
+          />
+        </div>
+      )}
+
+      {viewMode === 'daily' && (
+        <AdminDailyChart
+          checkins={checkins}
+          profiles={profiles}
+          initialUserId={selectedUserId}
+        />
       )}
 
       {viewMode === 'table' && (
@@ -375,7 +400,7 @@ export default function AdminData({ checkins = [], profiles = [], onDataMutated,
           checkins={checkins}
           onSelectUser={(uid) => {
             setSelectedUserId(uid);
-            setViewMode('table');
+            setViewMode('daily');
           }}
         />
       )}

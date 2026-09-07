@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, PlusCircle, Shield, LogOut, User, Globe, Settings } from 'lucide-react';
+import { Home, BarChart3, PlusCircle, Shield, Settings } from 'lucide-react';
 import { useLang } from '@/context/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import LanguageToggle from '@/components/LanguageToggle';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+
+
 
 export default function AppLayout() {
   const { t, lang, toggleLang } = useLang();

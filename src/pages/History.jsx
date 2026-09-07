@@ -8,10 +8,12 @@ import { getUserCheckins } from '@/lib/database';
 import { calculateStreak } from '@/utils/streak';
 import { Button } from '@/components/ui/button';
 import WeeklyChart from '@/components/history/WeeklyChart';
+import DailyTimelineChart from '@/components/history/DailyTimelineChart';
 import MonthlyHeatmap from '@/components/history/MonthlyHeatmap';
 import MoodBreakdown from '@/components/history/MoodBreakdown';
 import JournalSearch from '@/components/history/JournalSearch';
 import DateRangeSelector from '@/components/history/DateRangeSelector';
+import { format } from 'date-fns';
 
 export default function History() {
   const { user } = useAuth();
@@ -68,16 +70,36 @@ export default function History() {
     );
   }
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const hasCheckedInToday = checkins.some((c) => c.checkin_date === today);
+
   return (
     <div className="space-y-5">
       {/* Streak */}
-      {streak > 0 && (
-        <div className="flex items-center justify-center gap-2 bg-primary/5 rounded-2xl py-3 border border-primary/10">
-          <span className="font-semibold text-foreground">
-            🔥 {streak}{t('dayStreak')}
-          </span>
-        </div>
-      )}
+      {streak > 0 ? (
+        hasCheckedInToday ? (
+          <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl py-3 border border-orange-500/20 shadow-2xs">
+            <span className="font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-1">
+              🔥 {streak}{t('dayStreak')}
+            </span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              ({t('streakFueled') || 'เติมไฟวันนี้แล้ว!'})
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800/60 rounded-2xl py-3 border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span className="grayscale opacity-70">🔥</span> {streak}{t('dayStreak')}
+            </span>
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              ({t('streakNotFueled') || 'ยังไม่ได้เติมไฟวันนี้'}) 🩶
+            </span>
+          </div>
+        )
+      ) : null}
+
+      {/* Daily Timeline Chart (Multi check-in hourly visualization) */}
+      <DailyTimelineChart checkins={checkins} />
 
       <JournalSearch checkins={checkins} onFilter={setFilteredCheckins} />
       <DateRangeSelector onChange={setDateRange} />

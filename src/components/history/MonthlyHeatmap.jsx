@@ -9,9 +9,21 @@ export default function MonthlyHeatmap({ checkins }) {
   const monthEnd = endOfMonth(now);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  const dateMoods = {};
+  (checkins || []).forEach(c => {
+    if (!c.checkin_date) return;
+    if (!dateMoods[c.checkin_date]) dateMoods[c.checkin_date] = [];
+    const val = Number(c.overall_mood);
+    if (!isNaN(val) && val > 0) {
+      dateMoods[c.checkin_date].push(val);
+    }
+  });
+
   const checkinMap = {};
-  checkins.forEach(c => {
-    checkinMap[c.checkin_date] = c.overall_mood;
+  Object.entries(dateMoods).forEach(([dateStr, moods]) => {
+    if (moods.length > 0) {
+      checkinMap[dateStr] = Math.round(moods.reduce((a, b) => a + b, 0) / moods.length);
+    }
   });
 
   const moodColor = (mood) => {

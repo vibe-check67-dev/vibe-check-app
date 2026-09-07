@@ -27,8 +27,9 @@ export default async function handler(req, res) {
     }
 
     const payload = JSON.stringify({
-      title: title || 'ทดสอบการแจ้งเตือน! 🔥',
-      body: body || 'ระบบแจ้งเตือนเข้ามือถือของคุณพร้อมใช้งานแล้ว! เราจะคอยเตือนให้คุณมาเติมไฟทุกวันครับ',
+      title: title || 'Vibe Check พร้อมส่งพลังบวกให้คุณ ✨',
+      body: body || 'ระบบแจ้งเตือนพร้อมใช้งานแล้ว แวะมาเช็คอินและเติมไฟได้ทุกวันครับ',
+      tag: 'vibe-check-test',
       url: '/checkin',
     });
 

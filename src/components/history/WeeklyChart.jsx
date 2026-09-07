@@ -6,16 +6,21 @@ import { sentimentScore } from '@/utils/sentiment';
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-export default function WeeklyChart({ checkins, dateRange }) {
+export default function WeeklyChart({ checkins = [], dateRange }) {
   const { t } = useLang();
 
   const end = dateRange?.end ? new Date(dateRange.end) : new Date();
   const start = dateRange?.start ? new Date(dateRange.start) : subDays(new Date(), 6);
 
   // Map every check-in by date for quick same-day lookup.
-  const checkinMap = {};
+  // Group every check-in by date to handle multiple records per day
+  const checkinGroupMap = {};
   checkins.forEach((c) => {
-    if (c.checkin_date) checkinMap[c.checkin_date] = c;
+    if (!c.checkin_date) return;
+    if (!checkinGroupMap[c.checkin_date]) {
+      checkinGroupMap[c.checkin_date] = [];
+    }
+    checkinGroupMap[c.checkin_date].push(c);
   });
 
   const days = eachDayOfInterval({ start, end });
@@ -24,16 +29,33 @@ export default function WeeklyChart({ checkins, dateRange }) {
 
   const data = days.map((day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
-    const c = checkinMap[dateStr];
-    const before = c?.overall_mood != null ? Number(c.overall_mood) : null;
+    const dayRecords = checkinGroupMap[dateStr] || [];
 
-    // After-reading mood: nudge this day's score by the SAME day's reflection text
-    // (journal_response written after viewing the AI recommendations). No reflection
-    // that day → no change (after = before).
-    let after = before;
-    if (before != null && c?.journal_response && c.journal_response.trim()) {
-      const s = sentimentScore(c.journal_response);
-      after = +clamp(before + s * 0.4, 1, 5).toFixed(2);
+    let before = null;
+    let after = null;
+
+    if (dayRecords.length > 0) {
+      const validBefores = dayRecords
+        .map((c) => Number(c.overall_mood))
+        .filter((v) => !isNaN(v) && v != null);
+
+      if (validBefores.length > 0) {
+        before = +(validBefores.reduce((sum, v) => sum + v, 0) / validBefores.length).toFixed(1);
+      }
+
+      const validAfters = dayRecords.map((c) => {
+        const b = Number(c.overall_mood);
+        if (isNaN(b) || b == null) return null;
+        if (c.journal_response && c.journal_response.trim()) {
+          const s = sentimentScore(c.journal_response);
+          return clamp(b + s * 0.4, 1, 5);
+        }
+        return b;
+      }).filter((v) => v != null);
+
+      if (validAfters.length > 0) {
+        after = +(validAfters.reduce((sum, v) => sum + v, 0) / validAfters.length).toFixed(1);
+      }
     }
 
     return {

@@ -112,6 +112,7 @@ export default function Checkin() {
         free_text: freeText || '',
         time_of_day: timeOfDay,
         checkin_date: format(new Date(), 'yyyy-MM-dd'),
+        checkin_time: format(new Date(), 'HH:mm'),
       };
 
       const created = await createCheckin(checkinData);

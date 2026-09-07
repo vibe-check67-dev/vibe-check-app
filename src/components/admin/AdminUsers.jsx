@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, User, ShieldCheck, Calendar, CheckSquare, ChevronRight, Activity } from 'lucide-react';
+import { Search, User, ShieldCheck, ChevronRight, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useLang } from '@/context/LanguageContext';
 

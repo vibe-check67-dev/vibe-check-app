@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
+import { format } from 'date-fns';
 import { Download, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLang } from '@/context/LanguageContext';
@@ -23,6 +24,7 @@ export default function CSVImportExport({ checkins = [], onImportComplete }) {
       user_email: item.profiles?.email || '',
       user_name: item.profiles?.display_name || '',
       checkin_date: item.checkin_date || '',
+      checkin_time: item.checkin_time || '',
       time_of_day: item.time_of_day || '',
       overall_mood: item.overall_mood || '',
       energy: item.energy || '',
@@ -46,7 +48,7 @@ export default function CSVImportExport({ checkins = [], onImportComplete }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `vibe_checkins_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `vibe_checkins_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -94,7 +96,8 @@ export default function CSVImportExport({ checkins = [], onImportComplete }) {
               ai_food: row.ai_food || null,
               ai_message: row.ai_message || null,
               ai_journal_prompt: row.ai_journal_prompt || null,
-              checkin_date: row.checkin_date || new Date().toISOString().split('T')[0],
+              checkin_date: row.checkin_date || format(new Date(), 'yyyy-MM-dd'),
+              checkin_time: row.checkin_time || '12:00',
             }));
 
           if (rowsToInsert.length === 0) {

@@ -11,6 +11,15 @@ export async function createCheckin(checkinData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User is not authenticated');
 
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const defaultDate = `${year}-${month}-${day}`;
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const defaultTime = `${hours}:${minutes}`;
+
   const payload = {
     user_id: user.id,
     energy: Number(checkinData.energy),
@@ -28,7 +37,8 @@ export async function createCheckin(checkinData) {
     ai_food: checkinData.ai_food || null,
     ai_message: checkinData.ai_message || null,
     ai_journal_prompt: checkinData.ai_journal_prompt || null,
-    checkin_date: checkinData.checkin_date || new Date().toISOString().split('T')[0],
+    checkin_date: checkinData.checkin_date || defaultDate,
+    checkin_time: checkinData.checkin_time || defaultTime,
   };
 
   const { data, error } = await supabase
@@ -63,6 +73,7 @@ export async function getUserCheckins(userId, limit = 365) {
     .from('mood_checkins')
     .select('*')
     .order('checkin_date', { ascending: false })
+    .order('checkin_time', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -128,6 +139,7 @@ export async function getAllCheckins() {
     .from('mood_checkins')
     .select('*, profiles(id, email, display_name, avatar_url, role)')
     .order('checkin_date', { ascending: false })
+    .order('checkin_time', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (error) throw error;

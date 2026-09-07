@@ -229,6 +229,55 @@ const translations = {
   settingsSaved: { en: 'Settings saved successfully', th: 'บันทึกการตั้งค่าเรียบร้อยแล้ว' },
   aiSettingsDesc: { en: 'Configure your Google Gemini API key to power AI wellness recommendations. The key is securely stored in Supabase with RLS.', th: 'ตั้งค่า Google Gemini API Key เพื่อเปิดใช้งานระบบคำแนะนำ AI ข้อมูลจะถูกเก็บอย่างปลอดภัยใน Supabase' },
   realtimeActive: { en: 'Realtime Sync Active', th: 'ระบบซิงก์ข้อมูลเรียลไทม์ทำงานอยู่' },
+
+  // Notifications (Client-side scheduling)
+  notificationsTitle: { en: 'Daily Check-in Reminders', th: 'การแจ้งเตือนเตือนเติมไฟประจำวัน' },
+  notificationsDesc: { en: 'Client-side reminders scheduled on your device. Free and reliable.', th: 'ตั้งเตือนอัตโนมัติบนอุปกรณ์ของคุณ ทำงานฟรี 100% ไม่ต้องเสียค่าบริการคลาวด์' },
+  reminderTimes: { en: 'Reminder Times', th: 'รอบเวลาแจ้งเตือน' },
+  addReminderTime: { en: 'Add Reminder Time', th: 'เพิ่มเวลาแจ้งเตือน' },
+  removeReminderTime: { en: 'Remove', th: 'ลบ' },
+  detectedTimezone: { en: 'Detected Timezone', th: 'เขตเวลาที่ตรวจพบ' },
+  saveNotificationSettings: { en: 'Save Reminder Times', th: 'บันทึกเวลาแจ้งเตือน' },
+  notificationSettingsSaved: { en: 'Reminder times saved & scheduled!', th: 'บันทึกและตั้งเวลาแจ้งเตือนสำเร็จ!' },
+  testNotification: { en: 'Send Test Notification', th: 'ทดสอบส่งการแจ้งเตือน' },
+  notificationPromptTitle: { en: 'Vibe Check Time! 🔥', th: 'ได้เวลาเติมไฟแล้ว! 🔥' },
+  notificationPromptBody: { en: 'Take 60 seconds to check in on your mood today.', th: 'ใช้เวลาเพียง 60 วินาทีมาเช็คอินและบันทึกอารมณ์ของคุณกันเถอะ' },
+
+  // Multi Check-in & Streak
+  checkinAgain: { en: 'Check In Again', th: 'เช็คอินอีกครั้ง' },
+  viewLatestResults: { en: 'View Latest Results', th: 'ดูผลลัพธ์ล่าสุด' },
+  todayCheckinCount: { en: 'check-in(s) today', th: 'ครั้งวันนี้' },
+  streakNotFueled: { en: "Haven't fueled today", th: 'ยังไม่ได้เติมไฟวันนี้' },
+  streakFueled: { en: 'Streak fueled today!', th: 'เติมไฟวันนี้แล้ว!' },
+  streakInactivePrompt: { en: 'Check in today to keep your fire streak alive! 🩶', th: 'เช็คอินวันนี้เพื่อจุดไฟต่อเนื่องของคุณ! 🩶' },
+
+  // Daily Timeline Chart
+  dailyTimelineTitle: { en: 'Daily Mood Timeline', th: 'กราฟไทม์ไลน์อารมณ์รายวัน' },
+  dailyTimelineSubtitle: { en: 'Track how your mood shifts throughout the day', th: 'ดูการเปลี่ยนแปลงของอารมณ์ในแต่ละช่วงเวลาของวัน' },
+  selectDate: { en: 'Date', th: 'วันที่' },
+  today: { en: 'Today', th: 'วันนี้' },
+  yesterday: { en: 'Yesterday', th: 'เมื่อวาน' },
+  noCheckinsOnDate: { en: 'No check-ins recorded for this day', th: 'ไม่มีการเช็คอินในวันที่เลือก' },
+  moodScore: { en: 'Mood Score', th: 'คะแนนอารมณ์' },
+  checkinAt: { en: 'Check-in at', th: 'เช็คอินเวลา' },
+  timeOfDay: { en: 'Time of Day', th: 'ช่วงเวลา' },
+  hourOfDay: { en: 'Hour of Day', th: 'ชั่วโมงในวัน' },
+
+  // Admin Daily Charts
+  adminDailyChartTitle: { en: 'Daily Check-in Timeline Analysis', th: 'การวิเคราะห์ไทม์ไลน์เช็คอินรายวัน' },
+  viewIndividual: { en: 'Individual User', th: 'ไทม์ไลน์รายบุคคล' },
+  viewAggregate: { en: 'All Users (Aggregate)', th: 'ภาพรวมทุกคน (Aggregate)' },
+  hourlyAverageMood: { en: 'Average Mood by Hour', th: 'ค่าเฉลี่ยอารมณ์ตามชั่วโมง' },
+  totalCheckinsToday: { en: 'Total Daily Check-ins', th: 'ยอดเช็คอินรวมวันนี้' },
+  activeUsersToday: { en: 'Active Users Today', th: 'ผู้ใช้งานที่เช็คอินวันนี้' },
+  averageDailyMood: { en: 'Average Mood Today', th: 'คะแนนอารมณ์เฉลี่ยวันนี้' },
+  checkinCount: { en: 'Check-in Count', th: 'จำนวนครั้งที่เช็คอิน' },
+  tabDailyTimeline: { en: 'Daily Timeline', th: 'ไทม์ไลน์รายวัน' },
+
+  // General & Missing
+  time: { en: 'Time', th: 'เวลา' },
+  reminderBanner: { en: "You haven't checked in today. Take a minute to log your mood!", th: 'วันนี้คุณยังไม่ได้เช็คอินอารมณ์เลย แวะมาบันทึกความรู้สึกกันเถอะ!' },
+  pleaseAnswerAll: { en: 'Please answer all required questions before submitting.', th: 'กรุณาตอบคำถามที่จำเป็นให้ครบถ้วนก่อนส่ง' },
 };
 
 export function LanguageProvider({ children }) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { useLang } from '@/context/LanguageContext';
-import { subDays, format } from 'date-fns';
+import { subDays } from 'date-fns';
 
 export default function MoodBreakdown({ checkins }) {
   const { t } = useLang();

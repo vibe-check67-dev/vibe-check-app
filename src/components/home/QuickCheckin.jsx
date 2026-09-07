@@ -34,6 +34,7 @@ export default function QuickCheckin({ onCompleted }) {
         free_text: '',
         time_of_day: getTimeOfDay(),
         checkin_date: format(new Date(), 'yyyy-MM-dd'),
+        checkin_time: format(new Date(), 'HH:mm'),
       });
       onCompleted && onCompleted(created);
       navigate(`/results/${created.id}`);

@@ -12,7 +12,7 @@ export default function LanguageToggle() {
       onClick={toggleLang}
       className="rounded-full px-3 py-1 text-xs font-semibold tracking-wide border-border hover:bg-secondary transition-all"
     >
-      {lang === 'en' ? '🇹🇭 ไทย' : '🇬🇧 EN'}
+      {lang === 'en' ? '🇹🇭 ไทย' : '🇺🇸 EN'}
     </Button>
   );
 }

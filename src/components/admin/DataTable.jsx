@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Edit, Trash2, Plus, Loader2, Save, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { Search, Edit, Trash2, Plus, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,7 +35,8 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
     overall_mood: 3,
     free_text: '',
     time_of_day: 'morning',
-    checkin_date: new Date().toISOString().split('T')[0],
+    checkin_date: format(new Date(), 'yyyy-MM-dd'),
+    checkin_time: '12:00',
   });
 
   // Filter checkins by search term
@@ -60,12 +62,16 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
       overall_mood: item.overall_mood || 3,
       free_text: item.free_text || '',
       time_of_day: item.time_of_day || 'morning',
-      checkin_date: item.checkin_date || new Date().toISOString().split('T')[0],
+      checkin_date: item.checkin_date || format(new Date(), 'yyyy-MM-dd'),
+      checkin_time: item.checkin_time ? item.checkin_time.slice(0, 5) : '12:00',
     });
   };
 
   const openAddModal = () => {
     setIsAddingNew(true);
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
     setFormData({
       user_id: profiles[0]?.id || '',
       energy: 3,
@@ -77,7 +83,8 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
       overall_mood: 3,
       free_text: '',
       time_of_day: 'morning',
-      checkin_date: new Date().toISOString().split('T')[0],
+      checkin_date: format(new Date(), 'yyyy-MM-dd'),
+      checkin_time: `${hours}:${minutes}`,
     });
   };
 
@@ -97,6 +104,7 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
           free_text: formData.free_text,
           time_of_day: formData.time_of_day,
           checkin_date: formData.checkin_date,
+          checkin_time: formData.checkin_time || '12:00',
         });
       } else if (isAddingNew) {
         await createCheckin(formData);
@@ -185,7 +193,10 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
               filtered.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/75 dark:hover:bg-slate-900/30 transition-colors">
                   <td className="py-3 px-3.5 font-mono whitespace-nowrap text-slate-700 dark:text-slate-300">
-                    {row.checkin_date}
+                    <div>{row.checkin_date}</div>
+                    {row.checkin_time && (
+                      <div className="text-[10px] text-muted-foreground">{row.checkin_time.slice(0, 5)}</div>
+                    )}
                   </td>
                   <td className="py-3 px-3.5">
                     <div className="font-semibold text-foreground truncate max-w-[150px]">
@@ -262,7 +273,7 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
           </DialogHeader>
 
           <form onSubmit={handleSaveForm} className="space-y-3.5 py-2">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">{t('date')}</Label>
                 <Input
@@ -270,6 +281,17 @@ export default function DataTable({ checkins = [], profiles = [], onDataMutated 
                   value={formData.checkin_date}
                   onChange={(e) => setFormData({ ...formData, checkin_date: e.target.value })}
                   className="h-9 rounded-xl text-xs mt-1"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs">{t('time') || (lang === 'th' ? 'เวลา' : 'Time')}</Label>
+                <Input
+                  type="time"
+                  value={formData.checkin_time || '12:00'}
+                  onChange={(e) => setFormData({ ...formData, checkin_time: e.target.value })}
+                  className="h-9 rounded-xl text-xs mt-1 font-mono"
                   required
                 />
               </div>
