@@ -35,9 +35,11 @@ export default function AppLayout() {
         <div className={`${isAdminPage ? 'max-w-7xl' : 'max-w-2xl'} mx-auto px-4 sm:px-6 h-14 flex items-center justify-between transition-all duration-300`}>
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-sky-400 flex items-center justify-center text-white font-bold shadow-xs">
-              <span className="text-sm">〰️</span>
-            </div>
+            <img 
+              src="/icon-192.png" 
+              alt="Vibe Check Logo" 
+              className="w-8 h-8 rounded-xl object-cover shadow-xs" 
+            />
             <div className="flex items-center gap-2">
               <span className="font-bold text-foreground tracking-tight text-base">Vibe Check</span>
               {isAdmin && (

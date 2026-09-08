@@ -7,7 +7,7 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PageNotFound from '@/lib/PageNotFound';
-import { getNotificationSettings, notifyServiceWorker, startClientReminderScheduler } from '@/lib/pushNotifications';
+import { getNotificationSettings, notifyServiceWorker } from '@/lib/pushNotifications';
 
 // Pages
 import Login from '@/pages/Login';
@@ -34,13 +34,12 @@ const AuthenticatedRoutes = () => {
     }
   }, []);
 
-  // Sync notification settings from Supabase and notify SW on user login
+  // Sync notification settings from Supabase on user login
   useEffect(() => {
     if (user?.id) {
       getNotificationSettings(user.id).then((settings) => {
         if (settings && settings.enabled) {
           notifyServiceWorker(settings);
-          startClientReminderScheduler(user.id);
         }
       });
     }

@@ -128,8 +128,10 @@ export default function Settings() {
   };
 
   const handleAddReminderTime = () => {
-    const candidateTimes = ['12:00', '21:00', '15:00', '09:00', '14:00', '20:00', '22:00'];
-    const nextTime = candidateTimes.find((t) => !reminderTimes.includes(t)) || '12:00';
+    const candidateTimes = ['07:00', '12:00', '18:00', '21:00', '09:00', '15:00', '20:00', '22:00'];
+    const nextTime = candidateTimes.find((t) => !reminderTimes.includes(t)) ||
+      Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`).find((t) => !reminderTimes.includes(t)) ||
+      '12:00';
     setReminderTimes((prev) => [...prev, nextTime]);
   };
 
@@ -150,15 +152,15 @@ export default function Settings() {
     setSavingReminders(true);
     setTestStatus(null);
     try {
-      // Sanitize, format to HH:mm, deduplicate and sort chronologically
+      // Sanitize, format to HH:00, deduplicate and sort chronologically
       const validTimes = Array.from(
         new Set(
           reminderTimes
             .map((t) => (t || '').trim())
-            .filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+            .filter((t) => /^\d{1,2}(:\d{2})?$/.test(t))
             .map((t) => {
-              const [h, m] = t.split(':');
-              return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+              const h = t.split(':')[0];
+              return `${h.padStart(2, '0')}:00`;
             })
         )
       ).sort((a, b) => a.localeCompare(b));
@@ -291,8 +293,8 @@ export default function Settings() {
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed pl-10">
               {t('notificationsDesc') || (lang === 'th'
-                ? 'ตั้งเตือนอัตโนมัติบนอุปกรณ์ของคุณ ทำงานฟรี 100% ไม่ต้องเสียค่าบริการคลาวด์'
-                : 'Client-side reminders scheduled directly on your device. Free and reliable.')}
+                ? 'ตั้งเวลาเตือนรายชั่วโมง แจ้งเตือนผ่าน Web Push ปลุกหน้าจอได้แม้ปิดเว็บหรือปิดหน้าจอ ฟรี 100%'
+                : 'Hourly check-in reminders via Web Push. Wakes screen even when the app or browser is closed. 100% free.')}
             </p>
           </div>
 
@@ -346,12 +348,17 @@ export default function Settings() {
                     <span className="text-xs font-semibold text-muted-foreground w-6 text-center">
                       #{idx + 1}
                     </span>
-                    <Input
-                      type="time"
-                      value={time}
+                    <select
+                      value={time.endsWith(':00') ? time : `${time.split(':')[0].padStart(2, '0')}:00`}
                       onChange={(e) => handleTimeChange(idx, e.target.value)}
-                      className="h-9 w-28 rounded-lg font-mono text-sm px-2"
-                    />
+                      className="h-9 w-28 rounded-lg font-mono text-xs sm:text-sm px-2 border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`).map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt} {lang === 'th' ? 'น.' : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {reminderTimes.length > 1 && (

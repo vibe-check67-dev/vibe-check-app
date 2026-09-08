@@ -27,10 +27,8 @@ export default async function handler(req, res) {
   });
 
   try {
-    // Current date in Thailand timezone (UTC+7)
     const now = new Date();
-    const thaiDate = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-    const todayStr = thaiDate.toISOString().split('T')[0];
+    const sendAll = req.query?.all === '1' || req.query?.all === 'true';
 
     // 1. Fetch all push subscriptions
     const { data: subscriptions, error: subError } = await supabaseAdmin
@@ -42,28 +40,65 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: 'No push subscriptions found', sent: 0 });
     }
 
-    // 2. Fetch checkins completed today
-    const { data: todayCheckins, error: checkinError } = await supabaseAdmin
-      .from('mood_checkins')
-      .select('user_id')
-      .eq('checkin_date', todayStr);
+    // 2. Fetch all user notification settings
+    const { data: settingsList, error: settingsError } = await supabaseAdmin
+      .from('notification_settings')
+      .select('*');
 
-    if (checkinError) throw checkinError;
+    if (settingsError) {
+      console.warn('Could not fetch notification_settings:', settingsError);
+    }
 
-    const checkedInUserIds = new Set((todayCheckins || []).map((c) => c.user_id));
+    const settingsMap = new Map();
+    (settingsList || []).forEach((s) => {
+      settingsMap.set(s.user_id, s);
+    });
 
-    // 3. Filter subscriptions for users who have NOT checked in today
-    const pendingSubs = subscriptions.filter((s) => !checkedInUserIds.has(s.user_id));
+    // 3. Filter subscriptions for users due for reminder this hour
+    const eligibleSubs = subscriptions.filter((sub) => {
+      if (sendAll) return true;
 
-    const currentHour = thaiDate.getUTCHours();
-    const isMorning = currentHour < 13;
+      const userSettings = settingsMap.get(sub.user_id);
+      // If user explicitly disabled notifications, skip
+      if (userSettings && userSettings.enabled === false) {
+        return false;
+      }
+
+      const reminderTimes = (userSettings && Array.isArray(userSettings.reminder_times) && userSettings.reminder_times.length > 0)
+        ? userSettings.reminder_times
+        : ['07:00', '18:00'];
+
+      // Determine user's local hour
+      const tz = (userSettings && userSettings.timezone && userSettings.timezone !== 'auto')
+        ? userSettings.timezone
+        : 'Asia/Bangkok';
+
+      let localHourStr = '07';
+      try {
+        localHourStr = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          hour: '2-digit',
+          hour12: false,
+        }).format(now).padStart(2, '0');
+      } catch {
+        // Fallback to UTC+7 Bangkok
+        const thaiDate = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        localHourStr = String(thaiDate.getUTCHours()).padStart(2, '0');
+      }
+
+      // Check if user has a reminder set for this hour
+      return reminderTimes.some((t) => {
+        const h = (t || '').split(':')[0].padStart(2, '0');
+        return h === localHourStr;
+      });
+    });
 
     const payload = JSON.stringify({
-      title: isMorning ? 'เริ่มต้นวันใหม่ด้วยพลังบวก! ☀️' : 'อย่าลืมมาเติมไฟวันนี้นะ! 🔥',
-      body: isMorning
-        ? 'เช็คอินอารมณ์ 60 วินาทีในยามเช้า เพื่อเติมพลังรับวันใหม่กันเถอะ!'
-        : 'เย็นแล้ว มาเช็คอินอารมณ์ 60 วินาที เพื่อรักษาสถิติไฟต่อเนื่องกันเถอะ!',
-      tag: 'vibe-check-reminder',
+      title: 'Vibe Check ✨',
+      body: 'ได้เวลาเช็คอินอารมณ์แล้ว! แวะมาบันทึกความรู้สึกและเติมไฟกันเถอะ 🔥',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: 'vibe-check-hourly-reminder',
       url: '/checkin',
     });
 
@@ -71,7 +106,7 @@ export default async function handler(req, res) {
     const staleEndpoints = [];
 
     await Promise.all(
-      pendingSubs.map(async (sub) => {
+      eligibleSubs.map(async (sub) => {
         const pushSubscription = {
           endpoint: sub.endpoint,
           keys: {
@@ -85,7 +120,6 @@ export default async function handler(req, res) {
           sentCount++;
         } catch (err) {
           console.warn(`Failed push to ${sub.endpoint}:`, err.statusCode || err.message);
-          // If subscription is expired or unsubscribed, mark for deletion
           if (err.statusCode === 404 || err.statusCode === 410) {
             staleEndpoints.push(sub.endpoint);
           }
@@ -103,9 +137,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      today: todayStr,
+      timestamp: now.toISOString(),
       totalSubscriptions: subscriptions.length,
-      pendingReminders: pendingSubs.length,
+      dueReminders: eligibleSubs.length,
       sent: sentCount,
       cleaned: staleEndpoints.length,
     });

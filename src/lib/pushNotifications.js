@@ -257,8 +257,8 @@ export async function triggerTestPush(subscription) {
       if (registration.showNotification) {
         await registration.showNotification('Vibe Check ✨ (ทดสอบ)', {
           body: 'การแจ้งเตือนเตือนเติมไฟทำงานสมบูรณ์แล้ว! 🔥',
-          icon: '/icon.svg',
-          badge: '/icon.svg',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
           tag: 'vibe-check-test',
         });
         return { success: true, method: 'service_worker_local' };
@@ -272,7 +272,7 @@ export async function triggerTestPush(subscription) {
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     new Notification('Vibe Check ✨ (ทดสอบ)', {
       body: 'การแจ้งเตือนเตือนเติมไฟทำงานสมบูรณ์แล้ว! 🔥',
-      icon: '/icon.svg',
+      icon: '/icon-192.png',
     });
     return { success: true, method: 'window_local' };
   }
@@ -457,8 +457,8 @@ export async function triggerLocalNotification(timeStr) {
     body: isEn
       ? 'Time for your daily vibe check! Track your mood and keep your streak alive 🔥'
       : 'ได้เวลาเช็คอินอารมณ์แล้ว! แวะมาบันทึกความรู้สึกและเติมไฟกันเถอะ 🔥',
-    icon: '/icon.svg',
-    badge: '/icon.svg',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     tag: `vibe-check-reminder-${timeStr || 'daily'}`,
     renotify: true,
     timestamp: Date.now(),

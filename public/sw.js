@@ -166,8 +166,8 @@ async function showReminderNotification(timeStr) {
     body: isEn
       ? 'Time for your daily vibe check! Track your mood and keep your streak alive 🔥'
       : 'ได้เวลาเช็คอินอารมณ์แล้ว! แวะมาบันทึกความรู้สึกและเติมไฟกันเถอะ 🔥',
-    icon: '/icon.svg',
-    badge: '/icon.svg',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     tag: `vibe-check-reminder-${timeStr || 'daily'}`,
     renotify: true,
     timestamp: Date.now(),
@@ -243,7 +243,7 @@ self.addEventListener('periodicsync', (event) => {
 });
 
 // ============================================
-// Web Push Events
+// Web Push Events (Server-Side Push Reminders)
 // ============================================
 self.addEventListener('push', (event) => {
   let data = {};
@@ -251,20 +251,20 @@ self.addEventListener('push', (event) => {
     data = event.data ? event.data.json() : {};
   } catch (e) {
     data = {
-      title: 'เติมไฟกันเถอะ! 🔥',
-      body: event.data ? event.data.text() : 'วันนี้คุณยังไม่ได้เช็คอินอารมณ์เลย เข้ามาบันทึกกันเถอะ!',
+      title: 'Vibe Check ✨',
+      body: event.data ? event.data.text() : 'ได้เวลาเช็คอินอารมณ์และเติมไฟกันเถอะ 🔥',
     };
   }
 
   const title = data.title || 'Vibe Check ✨';
   const options = {
-    body: data.body || 'วันนี้อย่าลืมแวะมาเช็คอินอารมณ์และเติมไฟกันนะครับ',
-    icon: data.icon || '/icon.svg',
-    badge: data.badge || '/icon.svg',
+    body: data.body || 'ได้เวลาเช็คอินอารมณ์และเติมไฟกันเถอะ 🔥',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
     tag: data.tag || 'vibe-check-daily-reminder',
-    renotify: false,
+    renotify: true,
     timestamp: Date.now(),
-    vibrate: [100, 50, 100],
+    vibrate: [150, 75, 150],
     data: {
       url: data.url || '/checkin',
     },
