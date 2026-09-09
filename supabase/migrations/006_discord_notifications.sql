@@ -46,7 +46,48 @@ CREATE INDEX IF NOT EXISTS idx_notification_settings_discord_id
 COMMENT ON COLUMN public.notification_settings.discord_id IS 'Discord User Snowflake ID for DM notifications';
 
 -- --------------------------------------------------------------------
--- 3. (แนะนำ) ตั้งเวลา Hourly Cron ใน Supabase pg_cron (รันส่งแจ้งเตือนทุก 1 ชม.)
+-- 3. ป้องกัน Infinite Recursion ใน RLS Policies ของ Supabase (สาเหตุหลักที่เข้า Admin ไม่ได้)
+-- --------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- ลบ Policies เดิมที่ทำให้เกิด Loop
+DROP POLICY IF EXISTS "Admin can read all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Admin can read all checkins" ON public.mood_checkins;
+DROP POLICY IF EXISTS "Admin can modify all checkins" ON public.mood_checkins;
+DROP POLICY IF EXISTS "Admin only access" ON public.app_settings;
+DROP POLICY IF EXISTS "Admin can read all notification settings" ON public.notification_settings;
+
+-- ผูก Policies ใหม่โดยเรียกผ่านฟังก์ชัน is_admin() ที่มี SECURITY DEFINER
+CREATE POLICY "Admin can read all profiles"
+  ON public.profiles FOR SELECT
+  USING (public.is_admin());
+
+CREATE POLICY "Admin can read all checkins"
+  ON public.mood_checkins FOR SELECT
+  USING (public.is_admin());
+
+CREATE POLICY "Admin can modify all checkins"
+  ON public.mood_checkins FOR ALL
+  USING (public.is_admin());
+
+CREATE POLICY "Admin only access"
+  ON public.app_settings FOR ALL
+  USING (public.is_admin());
+
+CREATE POLICY "Admin can read all notification settings"
+  ON public.notification_settings FOR SELECT
+  USING (public.is_admin());
+
+-- --------------------------------------------------------------------
+-- 4. (แนะนำ) ตั้งเวลา Hourly Cron ใน Supabase pg_cron (รันส่งแจ้งเตือนทุก 1 ชม.)
 -- --------------------------------------------------------------------
 -- หมายเหตุ: หากต้องการใช้ pg_cron ให้แทนที่ <YOUR_APP_DOMAIN> ด้วยโดเมน Vercel ของคุณ
 -- และแทนที่ <YOUR_CRON_SECRET> ด้วย Secret ที่คุณตั้งไว้ใน Vercel (ถ้ามี)
@@ -66,3 +107,4 @@ COMMENT ON COLUMN public.notification_settings.discord_id IS 'Discord User Snowf
 --   );
 --   $$
 -- );
+

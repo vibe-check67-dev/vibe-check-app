@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
         email: userEmail || '',
         display_name: userEmail?.split('@')[0] || 'User',
         avatar_url: null,
-        role: 'user',
+        role: userEmail?.toLowerCase() === 'boss.apichai01@gmail.com' ? 'admin' : 'user',
       };
       setProfile(fallbackProfile);
       return fallbackProfile;
@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || user?.email?.toLowerCase() === 'boss.apichai01@gmail.com';
   const isAuthenticated = !!user;
 
   return (
