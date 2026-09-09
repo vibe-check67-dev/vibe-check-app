@@ -80,6 +80,11 @@ async function scheduleNextReminder() {
     return;
   }
 
+  // If user prefers Discord DM notifications, do not pop up local browser notifications
+  if (settings.discord_id) {
+    return;
+  }
+
   const reminderTimes = settings.reminder_times || ['07:00', '18:00'];
   if (!Array.isArray(reminderTimes) || reminderTimes.length === 0) {
     return;

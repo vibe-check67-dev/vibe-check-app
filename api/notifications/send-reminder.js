@@ -338,27 +338,47 @@ export default async function handler(req, res) {
 
       const reminderTimes = (Array.isArray(userSettings.reminder_times) && userSettings.reminder_times.length > 0)
         ? userSettings.reminder_times
-        : ['07:00', '18:00'];
+      // Prevent duplicate sends within 3 minutes
+      if (userSettings.last_notified_at) {
+        const lastMs = new Date(userSettings.last_notified_at).getTime();
+        if (now.getTime() - lastMs < 3 * 60 * 1000) {
+          return false;
+        }
+      }
+
+      if (sendAll) return true;
 
       const tz = (userSettings.timezone && userSettings.timezone !== 'auto')
         ? userSettings.timezone
         : 'Asia/Bangkok';
 
-      let localHourStr = '07';
+      let localHour = 7;
+      let localMin = 0;
       try {
-        localHourStr = new Intl.DateTimeFormat('en-US', {
+        const parts = new Intl.DateTimeFormat('en-US', {
           timeZone: tz,
-          hour: '2-digit',
+          hour: 'numeric',
+          minute: 'numeric',
           hourCycle: 'h23',
-        }).format(now).padStart(2, '0');
+        }).formatToParts(now);
+        localHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '7', 10);
+        localMin = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
       } catch {
         const thaiDate = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-        localHourStr = String(thaiDate.getUTCHours()).padStart(2, '0');
+        localHour = thaiDate.getUTCHours();
+        localMin = thaiDate.getUTCMinutes();
       }
 
+      const currTotalMin = localHour * 60 + localMin;
+
       return reminderTimes.some((t) => {
-        const h = (t || '').split(':')[0].padStart(2, '0');
-        return h === localHourStr;
+        const parts = (t || '').trim().split(':');
+        const targetH = parseInt(parts[0] || '0', 10);
+        const targetM = parseInt(parts[1] || '0', 10);
+        const targetTotalMin = targetH * 60 + targetM;
+
+        // Match within 1 minute window (exact or +/- 1 min for network/cron jitter)
+        return Math.abs(currTotalMin - targetTotalMin) <= 1;
       });
     });
 
@@ -414,6 +434,14 @@ export default async function handler(req, res) {
       try {
         await sendDiscordDM(cleanId, discordPayload);
         discordSent++;
+
+        // Update last_notified_at timestamp in Supabase
+        await supabaseAdmin
+          .from('notification_settings')
+          .update({ last_notified_at: now.toISOString() })
+          .eq('user_id', userSettings.user_id)
+          .catch(() => {});
+
         // Polite delay between requests to be gentle on Discord rate limits
         await new Promise((r) => setTimeout(r, 250));
       } catch (err) {
