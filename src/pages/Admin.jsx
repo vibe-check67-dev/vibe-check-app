@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, BarChart3, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
+import { Users, BarChart3, Sparkles, ShieldCheck, Loader2, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLang } from '@/context/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
@@ -13,6 +15,9 @@ import AdminAISettings from '@/components/admin/AdminAISettings';
 export default function Admin() {
   const { t, lang } = useLang();
   const { profile } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialUserId = searchParams.get('user') || 'all';
+
   const [activeTab, setActiveTab] = useState('data');
   const [checkins, setCheckins] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -110,9 +115,23 @@ export default function Admin() {
           <p className="text-xs text-muted-foreground mt-1">{t('adminSubtitle')}</p>
         </div>
 
-        <div className="text-xs text-muted-foreground">
-          {lang === 'th' ? 'เข้าสู่ระบบในฐานะ:' : 'Logged in as:'}{' '}
-          <span className="font-bold text-foreground font-mono">{profile?.email}</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-xl border-brand-200 text-brand-700 bg-brand-50/70 hover:bg-brand-100/80 dark:bg-brand-950/30 dark:border-brand-800 dark:text-brand-300 flex items-center gap-2 h-9 px-3.5 text-xs font-semibold shadow-2xs cursor-pointer"
+          >
+            <Link to="/admin/users">
+              <Users className="w-4 h-4 text-brand-600" />
+              <span>{lang === 'th' ? 'ดูสรุปรายบุคคล / รายชื่อผู้ใช้งาน' : 'View Users Summary'}</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-0.5 text-brand-500" />
+            </Link>
+          </Button>
+
+          <div className="text-xs text-muted-foreground">
+            {lang === 'th' ? 'เข้าสู่ระบบในฐานะ:' : 'Logged in as:'}{' '}
+            <span className="font-bold text-foreground font-mono">{profile?.email}</span>
+          </div>
         </div>
       </motion.div>
 
@@ -151,6 +170,7 @@ export default function Admin() {
             profiles={profiles}
             onDataMutated={loadAdminData}
             isRealtimeActive={isRealtimeActive}
+            initialUserId={initialUserId}
           />
         </TabsContent>
 
@@ -159,7 +179,7 @@ export default function Admin() {
           <AdminUsers
             profiles={profiles}
             checkins={checkins}
-            onSelectUser={(uid) => {
+            onSelectUser={(_uid) => {
               // Switch to data tab with this user selected
               setActiveTab('data');
             }}

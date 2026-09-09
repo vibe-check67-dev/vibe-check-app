@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Save, LogOut, Loader2, Globe, Sparkles, Shield, Bell, Send, Plus, Trash2, Clock } from 'lucide-react';
+import { Save, LogOut, Loader2, Globe, Sparkles, Shield, Send, Plus, Trash2, Clock, MessageSquare, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,6 @@ import {
   getCurrentPushSubscription,
   subscribeToPush,
   unsubscribeFromPush,
-  triggerTestPush,
   getNotificationSettings,
   saveNotificationSettings,
   getLocalTimezone,
@@ -25,18 +24,22 @@ export default function Settings() {
   const { t, lang, toggleLang } = useLang();
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Push notifications state
   const [pushSupported, setPushSupported] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
-  const [testLoading, setTestLoading] = useState(false);
   const [testStatus, setTestStatus] = useState(null);
   const [reminderTimes, setReminderTimes] = useState(['07:00', '18:00']);
   const [timezone, setTimezone] = useState(getLocalTimezone());
   const [savingReminders, setSavingReminders] = useState(false);
+
+  // Discord notifications state
+  const [discordId, setDiscordId] = useState('');
+  const [testDiscordLoading, setTestDiscordLoading] = useState(false);
+  const [testDiscordStatus, setTestDiscordStatus] = useState(null);
+  const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   
   const [formData, setFormData] = useState({
     weight: '',
@@ -78,6 +81,9 @@ export default function Settings() {
           if (settings.timezone && settings.timezone !== 'auto') {
             setTimezone(settings.timezone);
           }
+          if (settings.discord_id) {
+            setDiscordId(settings.discord_id);
+          }
         }
       });
     } else if (supported) {
@@ -92,12 +98,19 @@ export default function Settings() {
     setTestStatus(null);
     try {
       if (checked) {
-        await subscribeToPush(user?.id);
+        if (pushSupported) {
+          try {
+            await subscribeToPush(user?.id);
+          } catch (e) {
+            console.warn('Browser push subscription skipped/failed:', e.message);
+          }
+        }
         setPushEnabled(true);
         await saveNotificationSettings(user?.id, {
           enabled: true,
           reminder_times: reminderTimes,
           timezone,
+          discord_id: discordId,
         });
         setTestStatus({
           type: 'success',
@@ -106,12 +119,15 @@ export default function Settings() {
             : `Notifications enabled! Set for: ${reminderTimes.join(', ')}`,
         });
       } else {
-        await unsubscribeFromPush(user?.id);
+        if (pushSupported) {
+          await unsubscribeFromPush(user?.id);
+        }
         setPushEnabled(false);
         await saveNotificationSettings(user?.id, {
           enabled: false,
           reminder_times: reminderTimes,
           timezone,
+          discord_id: discordId,
         });
         setTestStatus({
           type: 'info',
@@ -151,6 +167,7 @@ export default function Settings() {
   const handleSaveReminderSettings = async () => {
     setSavingReminders(true);
     setTestStatus(null);
+    setTestDiscordStatus(null);
     try {
       // Sanitize, format to HH:00, deduplicate and sort chronologically
       const validTimes = Array.from(
@@ -168,14 +185,28 @@ export default function Settings() {
       const finalTimes = validTimes.length > 0 ? validTimes : ['07:00', '18:00'];
       setReminderTimes(finalTimes);
 
+      // Validate discordId if filled
+      const cleanDiscordId = (discordId || '').trim();
+      if (cleanDiscordId && !/^\d{17,20}$/.test(cleanDiscordId)) {
+        throw new Error(lang === 'th' ? 'Discord ID ต้องเป็นตัวเลขล้วน 17-20 หลัก (เช่น 123456789012345678)' : 'Discord ID must be a 17-20 digit numeric snowflake');
+      }
+
+      // Auto-enable reminders when user saves their settings and Discord ID is provided
+      const willBeEnabled = pushEnabled || Boolean(cleanDiscordId);
+      if (willBeEnabled && !pushEnabled) {
+        setPushEnabled(true);
+      }
+
       await saveNotificationSettings(user?.id, {
-        enabled: pushEnabled,
+        enabled: willBeEnabled,
         reminder_times: finalTimes,
         timezone,
+        discord_id: cleanDiscordId,
       });
+
       setTestStatus({
         type: 'success',
-        message: t('notificationSettingsSaved') || 'Reminder times saved & scheduled!',
+        message: lang === 'th' ? 'บันทึกการตั้งค่าแจ้งเตือนและ Discord ID สำเร็จแล้ว!' : 'Notification settings & Discord ID saved!',
       });
     } catch (err) {
       console.error('Error saving reminder times:', err);
@@ -188,23 +219,56 @@ export default function Settings() {
     }
   };
 
-  const handleTestPushNotification = async () => {
-    setTestLoading(true);
-    setTestStatus(null);
+  const handleTestDiscordNotification = async () => {
+    const cleanId = (discordId || '').trim();
+    if (!cleanId) {
+      setTestDiscordStatus({
+        type: 'error',
+        message: lang === 'th' ? 'กรุณากรอก Discord ID ของคุณก่อนทดสอบ' : 'Please enter your Discord ID first',
+      });
+      return;
+    }
+    if (!/^\d{17,20}$/.test(cleanId)) {
+      setTestDiscordStatus({
+        type: 'error',
+        message: lang === 'th' ? 'Discord ID ต้องเป็นตัวเลขล้วน 17-20 หลัก' : 'Discord ID must be 17-20 digits',
+      });
+      return;
+    }
+
+    setTestDiscordLoading(true);
+    setTestDiscordStatus(null);
     try {
-      await triggerTestPush();
-      setTestStatus({
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+
+      const res = await fetch(`/api/notifications/send-reminder?test=1&discord_id=${cleanId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || (lang === 'th' ? 'ส่งข้อความไม่สำเร็จ' : 'Failed to send DM'));
+      }
+      setTestDiscordStatus({
         type: 'success',
-        message: lang === 'th' ? 'ส่งการแจ้งเตือนแล้ว! ตรวจสอบแถบแจ้งเตือนของคุณได้เลยครับ 🔥' : 'Test notification sent! Check your notification bar.',
+        message: lang === 'th'
+          ? 'ส่งข้อความทดสอบไปยัง Discord DM ของคุณสำเร็จแล้ว! ตรวจสอบแชทใน Discord ได้เลยครับ 🎉'
+          : 'Test message sent to your Discord DM! Check your Discord app.',
       });
     } catch (err) {
-      console.error('Test push error:', err);
-      setTestStatus({
+      console.error('Discord test error:', err);
+      setTestDiscordStatus({
         type: 'error',
-        message: err.message || (lang === 'th' ? 'ส่งการแจ้งเตือนไม่สำเร็จ' : 'Failed to send test notification'),
+        message: `${err.message || 'Error'} ${
+          lang === 'th'
+            ? '(หมายเหตุ: บอทต้องอยู่ในเซิร์ฟเวอร์เดียวกับคุณ และต้องเปิด "Allow Direct Messages" ในเซิร์ฟเวอร์นั้น)'
+            : ''
+        }`,
       });
     } finally {
-      setTestLoading(false);
+      setTestDiscordLoading(false);
     }
   };
 
@@ -279,22 +343,23 @@ export default function Settings() {
         </Button>
       )}
 
-      {/* Push Notification Card */}
-      <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-4">
+      {/* Notification Settings Card: Discord Bot DM & Web Push */}
+      <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-5">
+        {/* Header with Master Switch */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
-                <Bell className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 flex items-center justify-center font-bold">
+                <MessageSquare className="w-4 h-4 text-[#5865F2]" />
               </div>
               <h2 className="text-base font-bold text-foreground">
-                {t('notificationsTitle') || (lang === 'th' ? 'การแจ้งเตือนเตือนเติมไฟบนมือถือ' : 'Daily Check-in Reminders')}
+                {lang === 'th' ? 'ระบบแจ้งเตือนเตือนเติมไฟ (Discord Bot DM)' : 'Discord DM Check-in Reminders'}
               </h2>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed pl-10">
-              {t('notificationsDesc') || (lang === 'th'
-                ? 'ตั้งเวลาเตือนรายชั่วโมง แจ้งเตือนผ่าน Web Push ปลุกหน้าจอได้แม้ปิดเว็บหรือปิดหน้าจอ ฟรี 100%'
-                : 'Hourly check-in reminders via Web Push. Wakes screen even when the app or browser is closed. 100% free.')}
+              {lang === 'th'
+                ? 'ตั้งเวลาเตือนรายชั่วโมง โดยบอทจะส่งข้อความแจ้งเตือนส่วนตัว (DM) พร้อมแท็กคุณใน Discord ส่งตรงถึงมือถือและคอมพิวเตอร์'
+                : 'Hourly check-in reminders sent directly to your Discord DM with user tag. Works on mobile & desktop.'}
             </p>
           </div>
 
@@ -305,21 +370,100 @@ export default function Settings() {
               <Switch
                 checked={pushEnabled}
                 onCheckedChange={handleTogglePush}
-                disabled={!pushSupported || pushLoading}
+                disabled={pushLoading}
               />
             )}
           </div>
         </div>
 
+        {!pushEnabled && (
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-border/80 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span>
+              {lang === 'th'
+                ? '💡 เปิดสวิตช์ด้านบนเพื่อตั้งค่า Discord ID, กำหนดเวลาเตือนใจ และทดสอบส่งข้อความ DM'
+                : '💡 Turn on the switch above to configure Discord ID, set reminder times, and test DM.'}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleTogglePush(true)}
+              className="h-8 text-xs rounded-lg px-3 font-semibold self-start sm:self-auto cursor-pointer"
+            >
+              {lang === 'th' ? 'เปิดใช้งานตอนนี้' : 'Enable Now'}
+            </Button>
+          </div>
+        )}
+
         {pushEnabled && (
-          <div className="space-y-3 pt-1 border-t">
-            {/* Detected Timezone */}
+          <div className="space-y-4 pt-2 border-t">
+            {/* 1. Discord ID Configuration Field */}
+            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#5865F2]" />
+                  <span>{lang === 'th' ? 'Discord User ID (สำหรับส่งข้อความและแท็กคุณ)' : 'Discord User ID'}</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setShowDiscordGuide(!showDiscordGuide)}
+                  className="text-[11px] text-[#5865F2] hover:underline font-semibold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>{showDiscordGuide ? (lang === 'th' ? 'ซ่อนวิธีหา ID' : 'Hide Guide') : (lang === 'th' ? 'วิธีดู Discord ID ของคุณ' : 'How to find your Discord ID')}</span>
+                  {showDiscordGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <Input
+                  type="text"
+                  placeholder={lang === 'th' ? 'เช่น 123456789012345678 (ตัวเลข 17-20 หลัก)' : 'e.g. 123456789012345678 (17-20 digits)'}
+                  value={discordId}
+                  onChange={(e) => setDiscordId(e.target.value.replace(/\D/g, ''))}
+                  className="font-mono text-xs sm:text-sm rounded-xl h-10 bg-background"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {lang === 'th'
+                    ? 'กรอกตัวเลข Discord User ID ของคุณ เพื่อให้บอทค้นหาและส่งข้อความหาคุณได้ถูกต้อง'
+                    : 'Enter your numeric Discord User ID so the bot can DM and tag you.'}
+                </p>
+              </div>
+
+              {/* Discord Guide Collapsible Box */}
+              {showDiscordGuide && (
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900/50 text-xs space-y-2 text-slate-700 dark:text-slate-200">
+                  <div className="font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
+                    <span>📋 ขั้นตอนการคัดลอก Discord User ID:</span>
+                  </div>
+                  <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed text-[11px]">
+                    <li>
+                      เปิดแอป Discord แล้วไปที่ <strong>User Settings</strong> (ไอคอนรูปฟันเฟือง ⚙️ มุมซ้ายล่าง)
+                    </li>
+                    <li>
+                      เลือกเมนู <strong>Advanced (ขั้นสูง)</strong> จากนั้นเปิดสวิตช์ <strong>Developer Mode (โหมดนักพัฒนา)</strong>
+                    </li>
+                    <li>
+                      ไปที่ชื่อโปรไฟล์ของคุณ (ด้านล่างซ้าย หรือในเซิร์ฟเวอร์) แล้วคลิกขวา (บนมือถือ: กดค้างที่โปรไฟล์ แล้วกดจุดสามจุด)
+                    </li>
+                    <li>
+                      เลือก <strong>"Copy User ID" (คัดลอก ID ผู้ใช้)</strong> แล้วนำตัวเลขยาวๆ มาวางในช่องด้านบนนี้
+                    </li>
+                  </ol>
+                  <div className="pt-1 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200/60">
+                    💡 <strong>ข้อสำคัญ:</strong> บอทและคุณต้องอยู่ใน Discord Server เดียวกันอย่างน้อย 1 เซิร์ฟเวอร์ และคุณต้องเปิด <em>"Allow Direct Messages"</em> ในการตั้งค่าความเป็นส่วนตัวของเซิร์ฟเวอร์นั้น
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Detected Timezone */}
             <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 px-3 py-2 rounded-xl">
               <span>🌐 {t('detectedTimezone') || 'Detected Timezone'}:</span>
               <span className="font-mono font-semibold text-foreground">{timezone}</span>
             </div>
 
-            {/* Reminder Times Header */}
+            {/* 3. Reminder Times Header */}
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-primary" />
@@ -330,7 +474,7 @@ export default function Settings() {
                 variant="outline"
                 size="sm"
                 onClick={handleAddReminderTime}
-                className="h-8 rounded-xl text-xs gap-1 border-dashed hover:bg-primary/5"
+                className="h-8 rounded-xl text-xs gap-1 border-dashed hover:bg-primary/5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 {t('addReminderTime') || 'Add Time'}
@@ -377,61 +521,66 @@ export default function Settings() {
               ))}
             </div>
 
-            {/* Action Bar: Save Times + Test Push */}
+            {/* Action Bar: Save Times + Test Discord DM */}
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
               <Button
                 type="button"
                 size="sm"
                 onClick={handleSaveReminderSettings}
                 disabled={savingReminders}
-                className="rounded-xl text-xs font-semibold gap-1.5 h-9"
+                className="rounded-xl text-xs font-semibold gap-1.5 h-10 px-4 cursor-pointer"
               >
                 {savingReminders ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <Save className="w-3.5 h-3.5" />
                 )}
-                <span>{t('saveNotificationSettings') || 'Save Times'}</span>
+                <span>{lang === 'th' ? 'บันทึกเวลาและการตั้งค่าแจ้งเตือน' : 'Save Notification Settings'}</span>
               </Button>
 
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleTestPushNotification}
-                disabled={testLoading}
-                className="rounded-xl text-xs flex items-center gap-1.5 h-9 border-primary/20 hover:bg-primary/5"
+                onClick={handleTestDiscordNotification}
+                disabled={testDiscordLoading || !discordId}
+                className="rounded-xl text-xs flex items-center gap-1.5 h-10 border-[#5865F2]/40 text-[#5865F2] hover:bg-[#5865F2]/10 cursor-pointer"
               >
-                {testLoading ? (
+                {testDiscordLoading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Send className="w-3.5 h-3.5 text-primary" />
+                  <Send className="w-3.5 h-3.5" />
                 )}
-                <span>{t('testNotification') || (lang === 'th' ? 'ทดสอบส่งแจ้งเตือน' : 'Send Test')}</span>
+                <span>{lang === 'th' ? 'ทดสอบส่ง Discord DM' : 'Test Discord DM'}</span>
               </Button>
             </div>
           </div>
         )}
 
-        {!pushSupported && (
-          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium">
-            {lang === 'th'
-              ? '⚠️ เบราว์เซอร์หรืออุปกรณ์นี้ไม่รองรับ Web Push Notification (หากใช้ iPhone ต้องกด Add to Home Screen ก่อน)'
-              : '⚠️ Web Push is not supported in this browser environment.'}
-          </div>
-        )}
-
+        {/* Status Messages */}
         {testStatus && (
           <div
             className={`p-3 rounded-xl text-xs font-medium transition-all ${
               testStatus.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200'
                 : testStatus.type === 'error'
-                ? 'bg-destructive/10 text-destructive'
+                ? 'bg-destructive/10 text-destructive border border-destructive/20'
                 : 'bg-muted text-muted-foreground'
             }`}
           >
             {testStatus.message}
+          </div>
+        )}
+
+        {testDiscordStatus && (
+          <div
+            className={`p-3 rounded-xl text-xs font-medium transition-all ${
+              testDiscordStatus.type === 'success'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200'
+                : 'bg-destructive/10 text-destructive border border-destructive/20'
+            }`}
+          >
+            {testDiscordStatus.message}
           </div>
         )}
       </div>

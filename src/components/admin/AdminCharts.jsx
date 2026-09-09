@@ -3,8 +3,6 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -13,10 +11,13 @@ import {
   Cell,
   PieChart,
   Pie,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from 'recharts';
 import { useLang } from '@/context/LanguageContext';
-
-const MOOD_COLORS = ['#f43f5e', '#fb923c', '#facc15', '#38bdf8', '#34d399'];
 
 export default function AdminCharts({ checkins = [] }) {
   const { t, lang } = useLang();
@@ -54,25 +55,46 @@ export default function AdminCharts({ checkins = [] }) {
     count: item.count,
   }));
 
-  // 2. Prepare mood distribution data (1-5)
-  const moodCounts = [0, 0, 0, 0, 0];
-  checkins.forEach((item) => {
-    const score = Math.round(Number(item.overall_mood || 3));
-    if (score >= 1 && score <= 5) {
-      moodCounts[score - 1] += 1;
-    }
-  });
+  // 2. Prepare 5-dimension radar well-being data (Well-being Radar)
+  const count = checkins.length || 1;
+  const totals = checkins.reduce(
+    (acc, curr) => ({
+      mood: acc.mood + Number(curr.overall_mood || 0),
+      stress: acc.stress + Number(curr.stress || 0),
+      energy: acc.energy + Number(curr.energy || 0),
+      sleep: acc.sleep + Number(curr.sleep || 0),
+      social: acc.social + Number(curr.social || 0),
+    }),
+    { mood: 0, stress: 0, energy: 0, sleep: 0, social: 0 }
+  );
 
-  const moodLabels =
-    lang === 'th'
-      ? ['แย่มาก (1)', 'แย่ (2)', 'ปานกลาง (3)', 'ดี (4)', 'ยอดเยี่ยม (5)']
-      : ['Very Low (1)', 'Low (2)', 'Okay (3)', 'Good (4)', 'Great (5)'];
-
-  const moodDistributionData = moodCounts.map((count, index) => ({
-    name: moodLabels[index],
-    count,
-    color: MOOD_COLORS[index],
-  }));
+  const radarData = [
+    {
+      subject: lang === 'th' ? 'อารมณ์ 😊' : 'Mood 😊',
+      score: checkins.length ? +(totals.mood / count).toFixed(1) : 0,
+      fullMark: 5,
+    },
+    {
+      subject: lang === 'th' ? 'ความเครียด 🔥' : 'Stress 🔥',
+      score: checkins.length ? +(totals.stress / count).toFixed(1) : 0,
+      fullMark: 5,
+    },
+    {
+      subject: lang === 'th' ? 'พลังงาน ⚡' : 'Energy ⚡',
+      score: checkins.length ? +(totals.energy / count).toFixed(1) : 0,
+      fullMark: 5,
+    },
+    {
+      subject: lang === 'th' ? 'การนอน 🌙' : 'Sleep 🌙',
+      score: checkins.length ? +(totals.sleep / count).toFixed(1) : 0,
+      fullMark: 5,
+    },
+    {
+      subject: lang === 'th' ? 'สังคม 💭' : 'Social 💭',
+      score: checkins.length ? +(totals.social / count).toFixed(1) : 0,
+      fullMark: 5,
+    },
+  ];
 
   // 3. Time of day distribution
   const timeOfDayMap = { morning: 0, afternoon: 0, evening: 0 };
@@ -173,37 +195,54 @@ export default function AdminCharts({ checkins = [] }) {
 
       {/* 2. Side-by-side distribution charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Mood Distribution Bar Chart */}
+        {/* Radar Balance Chart: Well-being Radar (Replaces BarChart) */}
         <div className="bg-card rounded-2xl p-5 border shadow-xs space-y-4">
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              📊 {lang === 'th' ? 'การกระจายตัวของระดับอารมณ์' : 'Mood Score Distribution'}
+              <span>🎯</span>
+              <span>{lang === 'th' ? 'ภาพรวมสมดุลชีวิต (Well-being Radar)' : 'Life Balance (Well-being Radar)'}</span>
             </h3>
             <p className="text-xs text-muted-foreground">
-              {lang === 'th' ? 'จำนวนครั้งการเช็คอินในแต่ละระดับคะแนน' : 'Frequency of check-ins across score tiers'}
+              {lang === 'th'
+                ? 'คะแนนเฉลี่ยทั้ง 5 ด้านของผู้ใช้/ช่วงเวลาที่เลือก'
+                : 'Average scores across 5 dimensions for the selected filter'}
             </p>
           </div>
 
-          <div className="h-60 w-full">
+          <div className="h-72 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={moodDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="#94a3b8" />
+              <RadarChart data={radarData} outerRadius="70%">
+                <PolarGrid stroke="#cbd5e1" strokeDasharray="3 3" opacity={0.6} />
+                <PolarAngleAxis
+                  dataKey="subject"
+                  tick={{ fill: 'currentColor', fontSize: 12, fontWeight: 600 }}
+                />
+                <PolarRadiusAxis
+                  angle={90}
+                  domain={[0, 5]}
+                  tick={false}
+                  axisLine={false}
+                />
                 <Tooltip
+                  formatter={(val) => [`${val} / 5`, lang === 'th' ? 'คะแนนเฉลี่ย' : 'Average Score']}
                   contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.96)',
                     borderRadius: '12px',
                     border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
                     fontSize: '12px',
                   }}
                 />
-                <Bar dataKey="count" name={lang === 'th' ? 'จำนวนครั้ง' : 'Check-ins'} radius={[6, 6, 0, 0]}>
-                  {moodDistributionData.map((entry, idx) => (
-                    <Cell key={`cell-${idx}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
+                <Radar
+                  name={lang === 'th' ? 'คะแนนเฉลี่ย' : 'Average'}
+                  dataKey="score"
+                  stroke="#0284c7"
+                  strokeWidth={2.5}
+                  fill="#38bdf8"
+                  fillOpacity={0.25}
+                  dot={{ r: 4, fill: '#0284c7', stroke: '#fff', strokeWidth: 1.5 }}
+                />
+              </RadarChart>
             </ResponsiveContainer>
           </div>
         </div>

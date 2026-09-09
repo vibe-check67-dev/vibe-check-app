@@ -8,12 +8,18 @@ import DataTable from '@/components/admin/DataTable';
 import AdminUsers from '@/components/admin/AdminUsers';
 import CSVImportExport from '@/components/admin/CSVImportExport';
 
-export default function AdminData({ checkins = [], profiles = [], onDataMutated, isRealtimeActive }) {
+export default function AdminData({ checkins = [], profiles = [], onDataMutated, isRealtimeActive, initialUserId = 'all' }) {
   const { t, lang } = useLang();
 
   const [viewMode, setViewMode] = useState('graph'); // 'graph' | 'daily' | 'table' | 'users'
-  const [selectedUserId, setSelectedUserId] = useState('all');
+  const [selectedUserId, setSelectedUserId] = useState(initialUserId || 'all');
   const [timeScope, setTimeScope] = useState('all'); // 'week' | 'month' | 'all'
+
+  React.useEffect(() => {
+    if (initialUserId && initialUserId !== 'all') {
+      setSelectedUserId(initialUserId);
+    }
+  }, [initialUserId]);
 
   // ============================================
   // FILTERING LOGIC

@@ -20,6 +20,7 @@ import Checkin from '@/pages/Checkin';
 import Results from '@/pages/Results';
 import History from '@/pages/History';
 import Admin from '@/pages/Admin';
+import AdminUsers from '@/pages/AdminUsers';
 import Settings from '@/pages/Settings';
 
 const AuthenticatedRoutes = () => {
@@ -73,6 +74,7 @@ const AuthenticatedRoutes = () => {
           {/* Admin Protected Route */}
           <Route element={<ProtectedRoute adminOnly={true} />}>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
         </Route>
       </Route>

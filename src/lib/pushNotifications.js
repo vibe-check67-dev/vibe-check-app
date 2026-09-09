@@ -304,6 +304,7 @@ const DEFAULT_SETTINGS = {
   enabled: false,
   reminder_times: ['07:00', '18:00'],
   timezone: 'auto',
+  discord_id: '',
 };
 
 /**
@@ -344,6 +345,7 @@ export async function getNotificationSettings(userId) {
           enabled: !!data.enabled,
           reminder_times: Array.isArray(data.reminder_times) ? data.reminder_times : ['07:00', '18:00'],
           timezone: data.timezone || getLocalTimezone(),
+          discord_id: data.discord_id || '',
         };
         // Update local caches
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -375,6 +377,7 @@ export async function saveNotificationSettings(userId, settings) {
       ? settings.reminder_times
       : ['07:00', '18:00'],
     timezone: settings.timezone || getLocalTimezone(),
+    discord_id: (settings.discord_id || '').trim(),
     lang: currentLang,
   };
 
@@ -399,6 +402,7 @@ export async function saveNotificationSettings(userId, settings) {
             enabled: payload.enabled,
             reminder_times: payload.reminder_times,
             timezone: payload.timezone,
+            discord_id: payload.discord_id || null,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'user_id' }
