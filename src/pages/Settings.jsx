@@ -375,7 +375,16 @@ export default function Settings() {
           'Authorization': `Bearer ${token}`,
         },
       });
-      const data = await res.json();
+
+      let data = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(lang === 'th' ? `เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง (${res.status}): ${text.slice(0, 100)}` : `Server error (${res.status}): ${text.slice(0, 100)}`);
+      }
+
       if (!res.ok || !data.success) {
         throw new Error(data.error || (lang === 'th' ? 'ส่งข้อความไม่สำเร็จ' : 'Failed to send DM'));
       }

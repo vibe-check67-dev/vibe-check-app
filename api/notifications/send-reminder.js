@@ -182,11 +182,20 @@ export default async function handler(req, res) {
         });
       }
 
-      const { data: { user: authUser }, error: authErr } = await supabaseAdmin.auth.getUser(bearerToken);
-      if (authErr || !authUser) {
+      let authUser = null;
+      try {
+        const { data, error: authErr } = await supabaseAdmin.auth.getUser(bearerToken);
+        if (authErr || !data?.user) {
+          return res.status(401).json({
+            success: false,
+            error: 'เซสชันการเข้าสู่ระบบไม่ถูกต้องหรือหมดอายุ โปรดรีเฟรชหน้าเว็บแล้วเข้าสู่ระบบใหม่',
+          });
+        }
+        authUser = data.user;
+      } catch (authException) {
         return res.status(401).json({
           success: false,
-          error: 'เซสชันการเข้าสู่ระบบไม่ถูกต้องหรือหมดอายุ โปรดรีเฟรชหน้าเว็บแล้วเข้าสู่ระบบใหม่',
+          error: `ตรวจสอบสิทธิ์ไม่สำเร็จ: ${authException.message}`,
         });
       }
 
@@ -331,22 +340,22 @@ export default async function handler(req, res) {
 
     if (settingsError) throw settingsError;
 
-    // 2. Identify users due for reminder this hour
+    // 2. Identify users due for reminder this minute
     const dueUsers = (settingsList || []).filter((userSettings) => {
       if (userSettings.enabled === false) return false;
       if (sendAll) return true;
 
-      const reminderTimes = (Array.isArray(userSettings.reminder_times) && userSettings.reminder_times.length > 0)
-        ? userSettings.reminder_times
-      // Prevent duplicate sends within 3 minutes
+      // Prevent duplicate sends within 90 seconds
       if (userSettings.last_notified_at) {
         const lastMs = new Date(userSettings.last_notified_at).getTime();
-        if (now.getTime() - lastMs < 3 * 60 * 1000) {
+        if (now.getTime() - lastMs < 90 * 1000) {
           return false;
         }
       }
 
-      if (sendAll) return true;
+      const reminderTimes = (Array.isArray(userSettings.reminder_times) && userSettings.reminder_times.length > 0)
+        ? userSettings.reminder_times
+        : [userSettings.reminder_time || '09:00'];
 
       const tz = (userSettings.timezone && userSettings.timezone !== 'auto')
         ? userSettings.timezone
@@ -399,7 +408,7 @@ export default async function handler(req, res) {
         : 'Asia/Bangkok';
       let hourDisplay = '';
       try {
-        hourDisplay = `${new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(now)}:00 น.`;
+        hourDisplay = `${new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now)} น.`;
       } catch {
         hourDisplay = '';
       }
@@ -450,7 +459,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. Fallback: Send Web Push notifications for eligible users who have push subscriptions
+    // 4. Fallback: Send Web Push notifications ONLY for users who do not have Discord notifications configured
     let pushSent = 0;
     const staleEndpoints = [];
 
@@ -459,8 +468,13 @@ export default async function handler(req, res) {
       .select('*');
 
     if (subscriptions && subscriptions.length > 0) {
-      const dueUserIds = new Set(dueUsers.map((u) => u.user_id));
-      const eligibleSubs = subscriptions.filter((sub) => sendAll || dueUserIds.has(sub.user_id));
+      const discordUserIds = new Set(discordEligible.map((u) => u.user_id));
+      const duePushUserIds = new Set(
+        dueUsers
+          .filter((u) => !discordUserIds.has(u.user_id))
+          .map((u) => u.user_id)
+      );
+      const eligibleSubs = subscriptions.filter((sub) => sendAll || duePushUserIds.has(sub.user_id));
 
       const webPushPayload = JSON.stringify({
         title: 'Vibe Check ✨',

@@ -501,6 +501,9 @@ export async function checkAndTriggerReminders(userId) {
   const settings = await getNotificationSettings(userId);
   if (!settings || !settings.enabled) return;
 
+  // If user is receiving Discord notifications, suppress local browser notifications
+  if (settings.discord_id) return;
+
   const times = settings.reminder_times || ['07:00', '18:00'];
   if (!Array.isArray(times) || times.length === 0) return;
 
@@ -548,8 +551,14 @@ export async function checkAndTriggerReminders(userId) {
   }
 }
 
-export function startClientReminderScheduler(userId) {
+export async function startClientReminderScheduler(userId) {
   if (typeof window === 'undefined') return;
+
+  const settings = await getNotificationSettings(userId);
+  if (settings?.discord_id) {
+    stopClientReminderScheduler();
+    return;
+  }
 
   // Immediate check
   checkAndTriggerReminders(userId);
