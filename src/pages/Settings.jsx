@@ -253,11 +253,28 @@ export default function Settings() {
   };
 
   const handleAddReminderTime = () => {
-    const candidateTimes = ['07:00', '12:00', '18:00', '21:00', '09:00', '15:00', '20:00', '22:00'];
+    // Generate next available hour or default to 12:00
+    const candidateTimes = ['07:00', '12:00', '15:00', '18:00', '21:00', '09:00', '10:00', '14:00', '16:00', '20:00', '22:00', '23:00'];
     const nextTime = candidateTimes.find((t) => !reminderTimes.includes(t)) ||
       Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`).find((t) => !reminderTimes.includes(t)) ||
       '12:00';
     setReminderTimes((prev) => [...prev, nextTime]);
+  };
+
+  const handleApplyPreset = (type) => {
+    let times = [];
+    if (type === 'morning_evening') {
+      times = ['07:00', '18:00'];
+    } else if (type === 'four_times') {
+      times = ['07:00', '12:00', '18:00', '21:00'];
+    } else if (type === 'every_2_hours') {
+      times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
+    } else if (type === 'every_3_hours') {
+      times = ['09:00', '12:00', '15:00', '18:00', '21:00'];
+    } else if (type === 'all_day') {
+      times = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+    }
+    setReminderTimes(times);
   };
 
   const handleRemoveReminderTime = (index) => {
@@ -278,15 +295,17 @@ export default function Settings() {
     setTestStatus(null);
     setTestDiscordStatus(null);
     try {
-      // Sanitize, format to HH:00, deduplicate and sort chronologically
+      // Sanitize, format to HH:mm, deduplicate and sort chronologically
       const validTimes = Array.from(
         new Set(
           reminderTimes
             .map((t) => (t || '').trim())
-            .filter((t) => /^\d{1,2}(:\d{2})?$/.test(t))
+            .filter((t) => /^\d{1,2}(:\d{1,2})?$/.test(t))
             .map((t) => {
-              const h = t.split(':')[0];
-              return `${h.padStart(2, '0')}:00`;
+              const parts = t.split(':');
+              const h = parts[0].padStart(2, '0');
+              const m = (parts[1] || '00').padStart(2, '0');
+              return `${h}:${m}`;
             })
         )
       ).sort((a, b) => a.localeCompare(b));
@@ -681,22 +700,71 @@ export default function Settings() {
               <span className="font-mono font-semibold text-foreground">{timezone}</span>
             </div>
 
-            {/* 3. Reminder Times Header */}
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-primary" />
-                {t('reminderTimes') || 'Reminder Times'}
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddReminderTime}
-                className="h-8 rounded-xl text-xs gap-1 border-dashed hover:bg-primary/5 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {t('addReminderTime') || 'Add Time'}
-              </Button>
+            {/* 3. Reminder Times Header & Presets */}
+            <div className="space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-primary" />
+                    <span>{lang === 'th' ? 'กำหนดเวลาแจ้งเตือนที่ต้องการ' : (t('reminderTimes') || 'Reminder Times')}</span>
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {lang === 'th' ? 'เลือกเวลาที่ต้องการให้บอทแจ้งเตือนได้ไม่จำกัด หรือกดเลือกชุดเวลาสำเร็จรูป' : 'Choose any reminder times or pick a preset.'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddReminderTime}
+                  className="h-8 rounded-xl text-xs gap-1 border-dashed hover:bg-primary/5 cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{lang === 'th' ? '+ เพิ่มเวลา' : (t('addReminderTime') || 'Add Time')}</span>
+                </Button>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-muted/40 border text-xs">
+                <span className="text-[11px] font-bold text-muted-foreground mr-1">
+                  ⚡ {lang === 'th' ? 'เลือกเวลาด่วน:' : 'Presets:'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('four_times')}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-background hover:bg-muted border text-foreground font-medium transition-colors cursor-pointer shadow-2xs"
+                >
+                  {lang === 'th' ? '🌅 เช้า-เที่ยง-เย็น-ค่ำ' : '4 Times/Day'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('every_2_hours')}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-background hover:bg-muted border text-foreground font-medium transition-colors cursor-pointer shadow-2xs"
+                >
+                  {lang === 'th' ? '🔁 ทุก 2 ชั่วโมง' : 'Every 2h'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('every_3_hours')}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-background hover:bg-muted border text-foreground font-medium transition-colors cursor-pointer shadow-2xs"
+                >
+                  {lang === 'th' ? '🔁 ทุก 3 ชั่วโมง' : 'Every 3h'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('all_day')}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-background hover:bg-muted border text-foreground font-medium transition-colors cursor-pointer shadow-2xs"
+                >
+                  {lang === 'th' ? '⏰ ทุกชั่วโมง (24 ชม.)' : 'Every Hour'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('morning_evening')}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-background hover:bg-muted border text-muted-foreground hover:text-foreground font-medium transition-colors cursor-pointer shadow-2xs"
+                >
+                  {lang === 'th' ? 'เช้า-เย็น (เริ่มต้น)' : 'Default'}
+                </button>
+              </div>
             </div>
 
             {/* Dynamic Times List */}
@@ -704,23 +772,22 @@ export default function Settings() {
               {reminderTimes.map((time, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-2 p-2 rounded-xl border bg-background"
+                  className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-background shadow-2xs"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-muted-foreground w-6 text-center">
                       #{idx + 1}
                     </span>
-                    <select
-                      value={time.endsWith(':00') ? time : `${time.split(':')[0].padStart(2, '0')}:00`}
+                    {/* Native time input for picking ANY hour and minute */}
+                    <input
+                      type="time"
+                      value={time.length === 5 ? time : `${time.split(':')[0].padStart(2, '0')}:${(time.split(':')[1] || '00').padStart(2, '0')}`}
                       onChange={(e) => handleTimeChange(idx, e.target.value)}
-                      className="h-9 w-28 rounded-lg font-mono text-xs sm:text-sm px-2 border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                    >
-                      {Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`).map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt} {lang === 'th' ? 'น.' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      className="h-9 w-32 rounded-lg font-mono text-xs sm:text-sm px-2.5 border bg-muted/20 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    />
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {lang === 'th' ? 'น.' : ''}
+                    </span>
                   </div>
 
                   {reminderTimes.length > 1 && (
