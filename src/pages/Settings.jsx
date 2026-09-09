@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Save, LogOut, Loader2, Globe, Sparkles, Shield, Send, Plus, Trash2, Clock, MessageSquare, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, LogOut, Loader2, Globe, Sparkles, Shield, Send, Plus, Trash2, Clock, MessageSquare, HelpCircle, ChevronDown, ChevronUp, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,14 @@ export default function Settings() {
 
   // Discord notifications state
   const [discordId, setDiscordId] = useState('');
+  const [discordUsername, setDiscordUsername] = useState(() => {
+    try {
+      return localStorage.getItem('vibe_discord_username') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [isConnectingDiscord, setIsConnectingDiscord] = useState(false);
   const [testDiscordLoading, setTestDiscordLoading] = useState(false);
   const [testDiscordStatus, setTestDiscordStatus] = useState(null);
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
@@ -92,6 +100,107 @@ export default function Settings() {
       });
     }
   }, [profile, user?.id]);
+
+  // Handle Discord OAuth Implicit Grant redirect return (e.g. /settings#access_token=...&token_type=Bearer)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      if (accessToken) {
+        setIsConnectingDiscord(true);
+        setTestDiscordStatus({
+          type: 'info',
+          message: lang === 'th' ? 'กำลังดึงข้อมูลบัญชี Discord ของคุณ...' : 'Fetching Discord account info...',
+        });
+
+        fetch('https://discord.com/api/v10/users/@me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const errJson = await res.json().catch(() => ({}));
+              throw new Error(errJson.message || `Discord API Error ${res.status}`);
+            }
+            return res.json();
+          })
+          .then(async (discordUser) => {
+            const uid = discordUser.id;
+            const uname = discordUser.global_name || discordUser.username;
+            setDiscordId(uid);
+            setDiscordUsername(uname);
+
+            try {
+              localStorage.setItem('vibe_discord_username', uname);
+            } catch {}
+
+            // Auto-enable reminders and save to Supabase
+            setPushEnabled(true);
+            if (user?.id) {
+              await saveNotificationSettings(user.id, {
+                enabled: true,
+                reminder_times: reminderTimes,
+                timezone,
+                discord_id: uid,
+              });
+            }
+
+            setTestDiscordStatus({
+              type: 'success',
+              message: lang === 'th'
+                ? `เชื่อมต่อกับ Discord @${uname} สำเร็จแล้ว! 🎉 (บอทพร้อมแจ้งเตือนตามเวลาที่ตั้งไว้)`
+                : `Connected to Discord @${uname}! 🎉`,
+            });
+
+            // Clean hash token from URL without reloading
+            window.history.replaceState(null, '', window.location.pathname);
+          })
+          .catch((err) => {
+            console.error('Discord OAuth Error:', err);
+            setTestDiscordStatus({
+              type: 'error',
+              message: lang === 'th'
+                ? `เชื่อมต่อ Discord ไม่สำเร็จ: ${err.message}`
+                : `Failed to connect Discord: ${err.message}`,
+            });
+          })
+          .finally(() => {
+            setIsConnectingDiscord(false);
+          });
+      }
+    }
+  }, [user?.id, reminderTimes, timezone, lang]);
+
+  const handleConnectDiscord = () => {
+    const clientId = (import.meta.env.VITE_DISCORD_CLIENT_ID || '1547251400944386170').trim();
+    const redirectUri = encodeURIComponent(`${window.location.origin}/settings`);
+    // Discord OAuth2 Implicit Grant (response_type=token)
+    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=token&scope=identify&redirect_uri=${redirectUri}`;
+    window.location.href = discordAuthUrl;
+  };
+
+  const handleDisconnectDiscord = async () => {
+    setDiscordId('');
+    setDiscordUsername('');
+    try {
+      localStorage.removeItem('vibe_discord_username');
+    } catch {}
+    if (user?.id) {
+      await saveNotificationSettings(user.id, {
+        enabled: pushEnabled,
+        reminder_times: reminderTimes,
+        timezone,
+        discord_id: '',
+      });
+    }
+    setTestDiscordStatus({
+      type: 'info',
+      message: lang === 'th' ? 'ยกเลิกการเชื่อมต่อกับ Discord เรียบร้อยแล้ว' : 'Disconnected from Discord',
+    });
+  };
 
   const handleTogglePush = async (checked) => {
     setPushLoading(true);
@@ -397,64 +506,173 @@ export default function Settings() {
 
         {pushEnabled && (
           <div className="space-y-4 pt-2 border-t">
-            {/* 1. Discord ID Configuration Field */}
-            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border space-y-3">
+            {/* 1. Discord Integration Section (2-Step Easy Setup) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/50 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#5865F2]" />
-                  <span>{lang === 'th' ? 'Discord User ID (สำหรับส่งข้อความและแท็กคุณ)' : 'Discord User ID'}</span>
-                </Label>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#5865F2] text-white flex items-center justify-center shadow-xs">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      <span>{lang === 'th' ? 'ระบบแจ้งเตือนผ่าน Discord Bot (DM ส่วนตัว)' : 'Discord DM Notifications'}</span>
+                      {discordId && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{lang === 'th' ? 'เชื่อมต่อแล้ว' : 'Connected'}</span>
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'th'
+                        ? 'บอทจะส่งข้อความแจ้งเตือนเข้าแชทส่วนตัว พร้อมแท็กชื่อคุณตามเวลาที่เลือก'
+                        : 'Bot will send personal DM reminders tagging you at your chosen times.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2-Step Action Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Step 1: Join Discord Server */}
+                <div className="p-3.5 rounded-xl bg-background border space-y-3 flex flex-col justify-between shadow-2xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                      <span className="w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 flex items-center justify-center text-[11px] font-bold">1</span>
+                      <span>{lang === 'th' ? 'เข้าร่วม Discord Server' : 'Join Discord Server'}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {lang === 'th'
+                        ? 'ต้องอยู่ในเซิร์ฟเวอร์เพื่อให้ Discord อนุญาตให้บอทส่งข้อความส่วนตัวหาคุณได้'
+                        : 'You must join the server so Discord permits the bot to send you DMs.'}
+                    </p>
+                  </div>
+                  <a
+                    href="https://discord.gg/eKsATjf68Z"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+                  >
+                    <span>{lang === 'th' ? 'คลิกเข้าร่วม Discord Server' : 'Join Discord Server'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* Step 2: Connect Account (1-Click OAuth) */}
+                <div className="p-3.5 rounded-xl bg-background border space-y-3 flex flex-col justify-between shadow-2xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                      <span className="w-5 h-5 rounded-full bg-[#5865F2]/15 text-[#5865F2] flex items-center justify-center text-[11px] font-bold">2</span>
+                      <span>{lang === 'th' ? 'เชื่อมต่อบัญชี Discord' : 'Connect Discord Account'}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {discordId
+                        ? (lang === 'th' ? `เชื่อมต่อกับ @${discordUsername || 'Discord User'} เรียบร้อยแล้ว` : `Connected to @${discordUsername || 'Discord User'}`)
+                        : (lang === 'th' ? 'คลิกเดียวจบ ดึง User ID อัตโนมัติ ไม่ต้องเปิดโหมดนักพัฒนา (Dev Mode)' : '1-click connect. Fetches your User ID automatically without Dev Mode.')}
+                    </p>
+                  </div>
+
+                  {discordId ? (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConnectDiscord}
+                        disabled={isConnectingDiscord}
+                        className="flex-1 h-9 text-xs rounded-xl cursor-pointer"
+                      >
+                        {lang === 'th' ? 'เปลี่ยนบัญชี' : 'Change Account'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleDisconnectDiscord}
+                        className="h-9 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl px-2.5 cursor-pointer"
+                      >
+                        {lang === 'th' ? 'ยกเลิก' : 'Disconnect'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleConnectDiscord}
+                      disabled={isConnectingDiscord}
+                      className="w-full h-9 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-semibold shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      {isConnectingDiscord ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>{lang === 'th' ? 'กำลังเชื่อมต่อ...' : 'Connecting...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{lang === 'th' ? 'เชื่อมต่อกับ Discord (คลิกเดียว)' : 'Connect with Discord'}</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Connected Details Bar */}
+              {discordId && (
+                <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="font-semibold text-emerald-900 dark:text-emerald-200">
+                        {discordUsername ? `@${discordUsername}` : 'Discord User'}
+                      </span>
+                      <span className="text-muted-foreground ml-2 font-mono text-[11px]">
+                        (ID: {discordId})
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                    พร้อมรับแจ้งเตือนตามเวลาที่เลือกด้านล่าง 👇
+                  </span>
+                </div>
+              )}
+
+              {/* Manual ID Input Fallback Collapsible */}
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => setShowDiscordGuide(!showDiscordGuide)}
-                  className="text-[11px] text-[#5865F2] hover:underline font-semibold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                  className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>{showDiscordGuide ? (lang === 'th' ? 'ซ่อนวิธีหา ID' : 'Hide Guide') : (lang === 'th' ? 'วิธีดู Discord ID ของคุณ' : 'How to find your Discord ID')}</span>
+                  <span>
+                    {showDiscordGuide
+                      ? (lang === 'th' ? 'ซ่อนการตั้งค่า Discord ID แบบแมนนวล' : 'Hide manual Discord ID setting')
+                      : (lang === 'th' ? 'หรือต้องการแก้ไข/กรอก Discord ID ด้วยตัวเอง (ทางเลือกเสริม)' : 'Or edit Discord ID manually')}
+                  </span>
                   {showDiscordGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
-              </div>
 
-              <div className="space-y-1">
-                <Input
-                  type="text"
-                  placeholder={lang === 'th' ? 'เช่น 123456789012345678 (ตัวเลข 17-20 หลัก)' : 'e.g. 123456789012345678 (17-20 digits)'}
-                  value={discordId}
-                  onChange={(e) => setDiscordId(e.target.value.replace(/\D/g, ''))}
-                  className="font-mono text-xs sm:text-sm rounded-xl h-10 bg-background"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  {lang === 'th'
-                    ? 'กรอกตัวเลข Discord User ID ของคุณ เพื่อให้บอทค้นหาและส่งข้อความหาคุณได้ถูกต้อง'
-                    : 'Enter your numeric Discord User ID so the bot can DM and tag you.'}
-                </p>
+                {showDiscordGuide && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-background border space-y-2 text-xs">
+                    <Label className="text-[11px] font-semibold text-muted-foreground">
+                      {lang === 'th' ? 'แก้ไข Discord User ID (ตัวเลข 17-20 หลัก):' : 'Discord User Snowflake ID:'}
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="เช่น 1547251400944386170"
+                      value={discordId}
+                      onChange={(e) => setDiscordId(e.target.value.replace(/\D/g, ''))}
+                      className="font-mono text-xs rounded-xl h-9 bg-muted/20"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      {lang === 'th'
+                        ? 'หากใช้ปุ่มเชื่อมต่ออัตโนมัติแล้ว ระบบจะกรอกตัวเลขนี้ให้โดยที่คุณไม่ต้องเปิด Dev Mode'
+                        : 'If you used 1-click connect, this is filled automatically.'}
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {/* Discord Guide Collapsible Box */}
-              {showDiscordGuide && (
-                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900/50 text-xs space-y-2 text-slate-700 dark:text-slate-200">
-                  <div className="font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
-                    <span>📋 ขั้นตอนการคัดลอก Discord User ID:</span>
-                  </div>
-                  <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed text-[11px]">
-                    <li>
-                      เปิดแอป Discord แล้วไปที่ <strong>User Settings</strong> (ไอคอนรูปฟันเฟือง ⚙️ มุมซ้ายล่าง)
-                    </li>
-                    <li>
-                      เลือกเมนู <strong>Advanced (ขั้นสูง)</strong> จากนั้นเปิดสวิตช์ <strong>Developer Mode (โหมดนักพัฒนา)</strong>
-                    </li>
-                    <li>
-                      ไปที่ชื่อโปรไฟล์ของคุณ (ด้านล่างซ้าย หรือในเซิร์ฟเวอร์) แล้วคลิกขวา (บนมือถือ: กดค้างที่โปรไฟล์ แล้วกดจุดสามจุด)
-                    </li>
-                    <li>
-                      เลือก <strong>"Copy User ID" (คัดลอก ID ผู้ใช้)</strong> แล้วนำตัวเลขยาวๆ มาวางในช่องด้านบนนี้
-                    </li>
-                  </ol>
-                  <div className="pt-1 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200/60">
-                    💡 <strong>ข้อสำคัญ:</strong> บอทและคุณต้องอยู่ใน Discord Server เดียวกันอย่างน้อย 1 เซิร์ฟเวอร์ และคุณต้องเปิด <em>"Allow Direct Messages"</em> ในการตั้งค่าความเป็นส่วนตัวของเซิร์ฟเวอร์นั้น
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* 2. Detected Timezone */}
