@@ -84,9 +84,11 @@ export default async function handler(req, res) {
 
     const langLabel = lang === 'th' ? 'Thai' : 'English';
     const presence = (v) => (v && v > 0 ? `${v}/5` : 'not provided');
+    const sessionNonce = Math.random().toString(36).substring(2, 10);
+    const sessionTimestamp = new Date().toISOString();
 
     const creativityInstruction =
-      'Your response must feel warm, personal, and creative — never generic or robotic. Vary your sentence structure, tone, and word choice. Avoid repeating the same phrases across sessions. Write as if a close friend is speaking — casual, genuine, and specific to what the user is experiencing right now.';
+      'Your response must feel warm, genuine, personal, and creative — never generic or robotic. Vary your sentence structure, tone, and word choice. Avoid repeating the same phrases across sessions. Write as if an empathetic close friend is speaking — casual, supportive, and specific to what the user is experiencing right now.';
 
     const profileContext = profile ? `
 User Personal Profile (Use this to customize your recommendations, respect medical restrictions and allergies strictly):
@@ -97,7 +99,10 @@ User Personal Profile (Use this to customize your recommendations, respect medic
 - Disliked Music: ${profile.dislikes_music || 'None'} (DO NOT recommend this style of music)
 - Disliked Activities: ${profile.dislikes_activities || 'None'} (DO NOT recommend these activities)` : '';
 
-    const prompt = `You are a wellness coach for a 60-second mood check-in. A user just checked in:
+    const prompt = `You are an empathetic, insightful wellness coach for a 60-second mood check-in.
+[Session Nonce: ${sessionNonce} | Timestamp: ${sessionTimestamp}]
+
+A user just checked in:
 - Energy: ${checkin.energy || 3}/5
 - Stress: ${checkin.stress || 3}/5
 - Social mood: ${checkin.social || 3}/5
@@ -110,10 +115,17 @@ ${profileContext}
 
 ${creativityInstruction}
 
+CRITICAL DIVERSITY & NOVELTY INSTRUCTIONS:
+1. Anti-repetition: Even if the user submits the exact same mood scores or checks in again in the same session, ALWAYS generate fresh, distinct, and creative suggestions. NEVER return identical or cliché recommendations.
+2. Music/Playlist diversity: DO NOT repeatedly default to generic "Lo-Fi Chill Beats" or "Acoustic Morning". Explore and rotate across rich, diverse genres suitable for their mood: e.g. Neo-Soul, City Pop, Indie Folk, Bossa Nova, Synthwave / Chillwave, R&B Groove, Ambient Piano, Nu-Disco, Deep House Chill, Jazz Instrumental, Classical Minimalist, Thai Indie, Reggae / Dub, or Bedroom Pop. Name a specific aesthetic or artist vibe.
+3. Activity diversity: Offer practical yet varied micro-activities (e.g. 5-minute desk declutter, 4-7-8 breathwork, mindful stretching, stepping onto the balcony, cold water splash, sketching, tactile grounding, herbal tea ritual, music dance break).
+4. Comfort Food & Drink: Offer realistic, delicious, varied comfort foods and drinks (warm soups, herbal tonics, fresh fruit smoothies, nourishing bowls, matcha latte, golden milk, coconut water, etc.), strictly respecting allergies and dislikes.
+5. Warm message: Authentic, encouraging, and unscripted.
+
 Respond entirely in ${langLabel}. Return ONLY a valid JSON object with the following schema:
 {
   "activity": "One short suggestion + dash reason. ~12 words max. Do NOT include an emoji (the UI card already shows one).",
-  "playlist": "One short suggestion + dash reason. ~12 words max.",
+  "playlist": "One short suggestion specifying genre or vibe + dash reason. ~12 words max.",
   "food": "${lang === 'th' ? 'รูปแบบ:\n🍽️ [อาหาร] — [เหตุผลสั้นมาก]\n🥤 [เครื่องดื่ม] — [เหตุผลสั้นมาก]\nอาหารต้องเป็นจานจริง เครื่องดื่มห้ามชาตลอด แต่ละบรรทัดสั้นมาก (~8 คำ)' : 'Format:\n🍽️ [food] — [very short reason]\n🥤 [drink] — [very short reason]\nFood must be a real dish, drink must not be plain tea. Each line very short (~8 words).'}",
   "message": "One short warm line + dash reason. ~12 words max. NOT a generic motivational quote.",
   "journal_prompt": "One short reflective question specific to their answers. 1 sentence."
@@ -140,6 +152,7 @@ Ensure the output is clean parseable JSON without markdown wrapping if possible.
             contents: prompt,
             config: {
               responseMimeType: 'application/json',
+              temperature: 1.25,
             },
           });
           if (response?.text) break;
