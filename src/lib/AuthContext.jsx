@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // 1. Initial session check
+    // 1. Initial Supabase session check
     const initAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
