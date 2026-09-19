@@ -8,6 +8,7 @@ import LanguageToggle from '@/components/LanguageToggle';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import AnimatedGradientText from '@/components/ui/animated-gradient-text';
 import MindParticles from '@/components/ui/mind-particles';
+import AuroraBackground from '@/components/ui/aurora-background';
 
 export default function AppLayout() {
   const { t, lang, toggleLang } = useLang();
@@ -29,12 +30,13 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col antialiased relative">
-      {/* Cinematic Mind Particles Ambient Background Field */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col antialiased relative overflow-x-hidden selection:bg-primary/20 selection:text-primary">
+      {/* Cinematic Ambient Atmosphere: Aurora Glow + Stardust Particles */}
+      <AuroraBackground opacity="opacity-35 dark:opacity-55" />
       <MindParticles />
 
       {/* Top Header */}
-      <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-border/50 shadow-2xs transition-colors duration-200">
+      <header className="sticky top-0 z-50 bg-background/80 dark:bg-background/75 backdrop-blur-xl border-b border-border/40 shadow-xs transition-colors duration-200">
         <div className={`${isAdminPage ? 'max-w-7xl' : 'max-w-2xl'} mx-auto px-4 sm:px-6 h-14 flex items-center justify-between transition-all duration-300`}>
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -74,7 +76,7 @@ export default function AppLayout() {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 ${isAdminPage ? 'max-w-7xl' : 'max-w-lg'} mx-auto w-full px-4 sm:px-6 py-6 pb-24 transition-all duration-300`}>
+      <main className={`relative z-10 flex-1 ${isAdminPage ? 'max-w-7xl' : 'max-w-lg'} mx-auto w-full px-4 sm:px-6 py-6 pb-24 transition-all duration-300`}>
         <Outlet />
       </main>
 

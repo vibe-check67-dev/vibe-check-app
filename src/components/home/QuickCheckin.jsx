@@ -45,7 +45,7 @@ export default function QuickCheckin({ onCompleted }) {
   };
 
   return (
-    <div className="bg-card rounded-2xl border p-4 space-y-3">
+    <div className="bg-card/85 dark:bg-card/75 backdrop-blur-xl rounded-2xl border border-border/70 p-4 space-y-3 shadow-lg shadow-black/5 dark:shadow-black/25 transition-colors">
       <p className="text-sm font-semibold text-foreground text-center">{t('quickCheckin')}</p>
       <div className="flex justify-around">
         {quickOptions.map((opt) => (

@@ -11,7 +11,6 @@ import OnboardingSlides from '@/components/onboarding/OnboardingSlides';
 import ReminderBanner from '@/components/home/ReminderBanner';
 import AfternoonReminder from '@/components/home/AfternoonReminder';
 import QuickCheckin from '@/components/home/QuickCheckin';
-import AuroraBackground from '@/components/ui/aurora-background';
 import ShimmerButton from '@/components/ui/shimmer-button';
 import NumberTicker from '@/components/ui/number-ticker';
 
@@ -92,9 +91,6 @@ export default function Home() {
 
   return (
     <div className="space-y-8 relative">
-      {/* Subtle Aurora Ambient glow for Home */}
-      <AuroraBackground opacity="opacity-20 dark:opacity-28" />
-
       {/* Greeting */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
