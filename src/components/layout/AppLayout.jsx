@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import LanguageToggle from '@/components/LanguageToggle';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import AnimatedGradientText from '@/components/ui/animated-gradient-text';
+import MindParticles from '@/components/ui/mind-particles';
 
 export default function AppLayout() {
   const { t, lang, toggleLang } = useLang();
@@ -29,6 +30,9 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col antialiased relative">
+      {/* Cinematic Mind Particles Ambient Background Field */}
+      <MindParticles />
+
       {/* Top Header */}
       <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-border/50 shadow-2xs transition-colors duration-200">
         <div className={`${isAdminPage ? 'max-w-7xl' : 'max-w-2xl'} mx-auto px-4 sm:px-6 h-14 flex items-center justify-between transition-all duration-300`}>

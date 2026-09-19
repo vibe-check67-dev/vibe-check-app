@@ -1,6 +1,7 @@
 import React from "react";
 import { useLang } from "@/context/LanguageContext";
 import AuroraBackground from "@/components/ui/aurora-background";
+import MindParticles from "@/components/ui/mind-particles";
 import ThemeToggle from "@/components/ui/theme-toggle";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, headerAction, children }) {
@@ -8,8 +9,9 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, header
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 relative overflow-hidden transition-colors duration-200">
-      {/* Cinematic Aurora Ambient Background */}
+      {/* Cinematic Aurora & Mind Particles Background */}
       <AuroraBackground opacity="opacity-30 dark:opacity-45" />
+      <MindParticles quantity={35} />
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
