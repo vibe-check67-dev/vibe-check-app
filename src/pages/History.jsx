@@ -13,6 +13,7 @@ import MonthlyHeatmap from '@/components/history/MonthlyHeatmap';
 import MoodBreakdown from '@/components/history/MoodBreakdown';
 import JournalSearch from '@/components/history/JournalSearch';
 import DateRangeSelector from '@/components/history/DateRangeSelector';
+import NumberTicker from '@/components/ui/number-ticker';
 import { format } from 'date-fns';
 
 export default function History() {
@@ -78,9 +79,11 @@ export default function History() {
       {/* Streak */}
       {streak > 0 ? (
         hasCheckedInToday ? (
-          <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl py-3 border border-orange-500/20 shadow-2xs">
-            <span className="font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-1">
-              🔥 {streak}{t('dayStreak')}
+          <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 rounded-2xl py-3 border border-orange-500/30 shadow-xs">
+            <span className="font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+              <span className="animate-bounce">🔥</span>
+              <NumberTicker value={streak} className="font-bold font-mono" />
+              <span>{t('dayStreak')}</span>
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
               ({t('streakFueled') || 'เติมไฟวันนี้แล้ว!'})
@@ -88,8 +91,10 @@ export default function History() {
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800/60 rounded-2xl py-3 border border-slate-200 dark:border-slate-700 shadow-2xs">
-            <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <span className="grayscale opacity-70">🔥</span> {streak}{t('dayStreak')}
+            <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <span className="grayscale opacity-70">🔥</span>
+              <NumberTicker value={streak} className="font-bold font-mono" />
+              <span>{t('dayStreak')}</span>
             </span>
             <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
               ({t('streakNotFueled') || 'ยังไม่ได้เติมไฟวันนี้'}) 🩶

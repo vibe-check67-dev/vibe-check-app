@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/context/LanguageContext';
+import ThemeToggle from '@/components/ui/theme-toggle';
 import { supabase } from '@/lib/supabase';
 import {
   isNotificationSupported,
@@ -460,14 +461,26 @@ export default function Settings() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="secondary" onClick={toggleLang} className="rounded-xl flex gap-2">
-          <Globe className="w-4 h-4" />
-          {lang === 'th' ? 'เปลี่ยนเป็น English' : 'Switch to ภาษาไทย'}
-        </Button>
-        <Button variant="secondary" onClick={handleViewOnboarding} className="rounded-xl flex gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          {lang === 'th' ? 'ดูหน้าแนะนำแอปอีกครั้ง' : 'View App Intro'}
+      {/* Appearance & Preferences */}
+      <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {lang === 'th' ? 'การแสดงผลและภาษา' : 'Appearance & Language'}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ThemeToggle variant="button" />
+          <Button variant="secondary" onClick={toggleLang} className="rounded-xl flex items-center justify-between h-12 px-3.5 border hover:bg-secondary/80">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <Globe className="w-4 h-4 text-accent" />
+              <span>{lang === 'th' ? 'ภาษา / Language' : 'Language'}</span>
+            </span>
+            <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-md">
+              {lang === 'th' ? 'ไทย 🇹🇭' : 'EN 🇺🇸'}
+            </span>
+          </Button>
+        </div>
+        <Button variant="ghost" size="sm" onClick={handleViewOnboarding} className="w-full rounded-xl text-xs text-muted-foreground hover:text-foreground flex gap-2 justify-center">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          {lang === 'th' ? 'ดูหน้าแนะนำแอปอีกครั้ง (App Intro)' : 'View App Intro'}
         </Button>
       </div>
 

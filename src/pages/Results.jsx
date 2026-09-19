@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, Check, Share2, AlertCircle } from 'lucide-react';
+import { Check, Share2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLang } from '@/context/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import RecommendationCard from '@/components/results/RecommendationCard';
 import MoodShareCard from '@/components/results/MoodShareCard';
+import AIBreathingOrb from '@/components/ui/ai-breathing-orb';
+import { triggerConfetti } from '@/utils/confetti';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { getCheckinById, updateCheckin, fetchAIRecommendations } from '@/lib/database';
@@ -22,6 +24,7 @@ export default function Results() {
   const [showShareCard, setShowShareCard] = useState(false);
   const [aiError, setAiError] = useState('');
   const prevLangRef = useRef(lang);
+  const confettiTriggeredRef = useRef(false);
 
   const generateRecommendations = useCallback(async (item, targetLang) => {
     if (!item) return;
@@ -126,14 +129,19 @@ export default function Results() {
     }
   };
 
+  // Trigger celebration confetti when results are successfully loaded
+  useEffect(() => {
+    if (checkin && !loading && !generating && !confettiTriggeredRef.current) {
+      confettiTriggeredRef.current = true;
+      triggerConfetti();
+    }
+  }, [checkin, loading, generating]);
+
   if (loading || generating) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">
-          {generating && !loading ? t('regenerating') : t('loading')}
-        </p>
-      </div>
+      <AIBreathingOrb
+        message={generating && !loading ? t('regenerating') : (t('loading') || 'AI กำลังวิเคราะห์และคัดสรรคำแนะนำเพื่อคุณ...')}
+      />
     );
   }
 

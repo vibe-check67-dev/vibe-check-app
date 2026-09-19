@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { ArrowRight, Heart, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/context/LanguageContext';
 import { getUserCheckins } from '@/lib/database';
@@ -12,6 +11,9 @@ import OnboardingSlides from '@/components/onboarding/OnboardingSlides';
 import ReminderBanner from '@/components/home/ReminderBanner';
 import AfternoonReminder from '@/components/home/AfternoonReminder';
 import QuickCheckin from '@/components/home/QuickCheckin';
+import AuroraBackground from '@/components/ui/aurora-background';
+import ShimmerButton from '@/components/ui/shimmer-button';
+import NumberTicker from '@/components/ui/number-ticker';
 
 export default function Home() {
   const { user } = useAuth();
@@ -89,16 +91,23 @@ export default function Home() {
   const latestTodayCheckin = todayCheckins[0] || null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* Subtle Aurora Ambient glow for Home */}
+      <AuroraBackground opacity="opacity-20 dark:opacity-28" />
+
       {/* Greeting */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center space-y-2 pt-6"
       >
-        <div className="text-5xl mb-4">
+        <motion.div
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          className="text-5xl mb-4 inline-block select-none"
+        >
           {hasCheckedInToday ? '✨' : '👋'}
-        </div>
+        </motion.div>
         <h1 className="text-2xl font-bold text-foreground">
           {hasCheckedInToday
             ? (lang === 'th'
@@ -108,7 +117,7 @@ export default function Home() {
         </h1>
       </motion.div>
 
-      {/* Streak (TikTok-style: Active Fire vs Grey Unfueled Fire) */}
+      {/* Streak (TikTok-style: Active Fire vs Grey Unfueled Fire with Number Ticker) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -116,10 +125,12 @@ export default function Home() {
       >
         {streak > 0 ? (
           hasCheckedInToday ? (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 rounded-2xl py-3 px-4 border border-orange-500/20 text-center shadow-2xs">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/15 rounded-2xl py-3 px-4 border border-orange-500/30 text-center shadow-xs">
               <div className="flex items-center gap-1.5 font-bold text-orange-600 dark:text-orange-400">
-                <span className="text-xl">🔥</span>
-                <span>{streak} {t('dayStreak')}</span>
+                <span className="text-xl animate-bounce">🔥</span>
+                <span>
+                  <NumberTicker value={streak} className="font-bold font-mono text-base" /> {t('dayStreak')}
+                </span>
               </div>
               <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
@@ -130,7 +141,9 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800/60 rounded-2xl py-3 px-4 border border-slate-200 dark:border-slate-700 text-center shadow-2xs">
               <div className="flex items-center gap-1.5 font-bold text-slate-500 dark:text-slate-400">
                 <span className="text-xl grayscale opacity-70">🔥</span>
-                <span>{streak} {t('dayStreak')}</span>
+                <span>
+                  <NumberTicker value={streak} className="font-bold font-mono text-base" /> {t('dayStreak')}
+                </span>
               </div>
               <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
               <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -140,10 +153,10 @@ export default function Home() {
           )
         ) : (
           hasCheckedInToday ? (
-            <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl py-3 px-4 border border-orange-500/20 text-center shadow-2xs">
+            <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/15 to-amber-500/15 rounded-2xl py-3 px-4 border border-orange-500/30 text-center shadow-xs">
               <span className="text-xl">🔥</span>
               <span className="font-bold text-orange-600 dark:text-orange-400">
-                1 {t('dayStreak')}
+                <NumberTicker value={1} className="font-bold font-mono" /> {t('dayStreak')}
               </span>
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium ml-1">
                 ({t('streakFueled') || 'เติมไฟวันนี้แล้ว!'})
@@ -158,18 +171,18 @@ export default function Home() {
         )}
       </motion.div>
 
-      {/* CTA */}
+      {/* Primary CTA with Shimmer Button */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="space-y-2.5"
       >
-        <Link to="/checkin">
-          <Button className="w-full h-14 rounded-2xl text-base font-semibold gap-2 shadow-sm">
+        <Link to="/checkin" className="block">
+          <ShimmerButton className="w-full h-14 text-base font-semibold gap-2 shadow-md">
             {hasCheckedInToday ? (t('checkinAgain') || 'เช็คอินอีกครั้ง') : (t('startCheckin') || 'เริ่มเช็คอิน')}
             <ArrowRight className="w-4 h-4" />
-          </Button>
+          </ShimmerButton>
         </Link>
 
         {hasCheckedInToday && latestTodayCheckin && (

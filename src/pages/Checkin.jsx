@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import ShimmerButton from '@/components/ui/shimmer-button';
 import { Textarea } from '@/components/ui/textarea';
 import { useLang } from '@/context/LanguageContext';
 import { getTimeOfDay } from '@/utils/timeOfDay';
@@ -198,17 +198,17 @@ export default function Checkin() {
             />
             <p className="text-right text-xs text-muted-foreground">{freeText.length}/100</p>
 
-            <Button
+            <ShimmerButton
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full h-12 rounded-2xl text-base font-semibold"
+              className="w-full h-12 text-base font-semibold"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 t('submit')
               )}
-            </Button>
+            </ShimmerButton>
           </motion.div>
         )}
       </AnimatePresence>
