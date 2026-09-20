@@ -18,7 +18,7 @@ const focusEmojis = ['🌫️', '😵💫', '😐', '🎯', '🔥'];
 const outlookEmojis = ['☁️', '😐', '🙂', '✨', '🌟'];
 
 export default function Checkin() {
-  const { t, tArr } = useLang();
+  const { t, tArr, lang } = useLang();
   const navigate = useNavigate();
   const timeOfDay = getTimeOfDay();
 
@@ -138,7 +138,7 @@ export default function Checkin() {
   return (
     <div className="flex flex-col items-center min-h-[60vh] justify-center">
       {/* Progress bar & Step Counter */}
-      <div className="w-full max-w-xs mb-8 space-y-2">
+      <div className="w-full max-w-sm sm:max-w-md mb-8 space-y-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold px-1">
           <span>
             {step < steps.length
@@ -162,7 +162,7 @@ export default function Checkin() {
       </div>
 
       {error && (
-        <div className="w-full max-w-md mb-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center font-medium">
+        <div className="w-full max-w-sm sm:max-w-md mb-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center font-medium">
           {error}
         </div>
       )}
@@ -175,7 +175,7 @@ export default function Checkin() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.22 }}
-            className="w-full"
+            className="w-full max-w-sm sm:max-w-md"
           >
             <EmojiSelector
               emojis={currentStep.emojis}
@@ -231,7 +231,7 @@ export default function Checkin() {
       </AnimatePresence>
 
       {/* Smart Bottom Navigation: Back & Next */}
-      <div className="flex items-center justify-between w-full max-w-sm mt-8 px-2">
+      <div className="flex items-center justify-between w-full max-w-sm sm:max-w-md mt-8 px-2">
         {step > 0 ? (
           <button
             type="button"
