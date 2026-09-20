@@ -1,10 +1,11 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { useLang } from "@/context/LanguageContext";
 import AuroraBackground from "@/components/ui/aurora-background";
 import MindParticles from "@/components/ui/mind-particles";
 import ThemeToggle from "@/components/ui/theme-toggle";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, headerAction, children }) {
+export default function AuthLayout({ icon: Icon, logoSrc, title, subtitle, footer, headerAction, children }) {
   const { lang, toggleLang } = useLang();
 
   return (
@@ -15,9 +16,30 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, header
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary to-amber-500 shadow-md shadow-primary/20 mb-4 text-primary-foreground">
-            <Icon className="w-7 h-7" aria-hidden="true" />
-          </div>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="inline-block mb-4"
+          >
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative inline-flex items-center justify-center p-1 rounded-2xl bg-gradient-to-tr from-primary via-amber-400/80 to-teal-400 shadow-xl shadow-primary/20"
+            >
+              {logoSrc || !Icon ? (
+                <img
+                  src={logoSrc || "/icon-192.png"}
+                  alt="Vibe Check Brand Logo"
+                  className="w-14 h-14 rounded-xl object-cover shadow-inner"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-primary to-amber-500 flex items-center justify-center text-primary-foreground">
+                  <Icon className="w-7 h-7" aria-hidden="true" />
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2 text-sm">{subtitle}</p>}
         </div>

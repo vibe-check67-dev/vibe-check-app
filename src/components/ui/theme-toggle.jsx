@@ -2,9 +2,11 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LanguageContext';
 
 export default function ThemeToggle({ className = '', variant = 'icon' }) {
   const { theme, toggleTheme, isDark } = useTheme();
+  const { t, lang } = useLang();
 
   if (variant === 'button') {
     return (
@@ -16,7 +18,7 @@ export default function ThemeToggle({ className = '', variant = 'icon' }) {
             ? 'bg-slate-900/60 border-slate-800 text-slate-100 hover:bg-slate-900'
             : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100'
         } ${className}`}
-        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label={isDark ? (lang === 'th' ? 'เปลี่ยนเป็นโหมดสว่าง' : 'Switch to light mode') : (lang === 'th' ? 'เปลี่ยนเป็นโหมดมืด' : 'Switch to dark mode')}
       >
         <span className="flex items-center gap-2 text-sm font-semibold">
           {isDark ? (
@@ -24,10 +26,10 @@ export default function ThemeToggle({ className = '', variant = 'icon' }) {
           ) : (
             <Sun className="w-4 h-4 text-amber-500" />
           )}
-          <span>{isDark ? 'Dark Mode' : 'Light Mode'}</span>
+          <span>{isDark ? t('darkMode') : t('lightMode')}</span>
         </span>
         <span className="text-xs px-2 py-0.5 rounded-full bg-secondary font-medium text-muted-foreground">
-          {isDark ? 'เปิดอยู่' : 'ปิดอยู่'}
+          {isDark ? t('themeActive') : t('themeInactive')}
         </span>
       </button>
     );

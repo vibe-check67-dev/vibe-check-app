@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, User, Loader2, CheckCircle2 } from "lucide-react";
+import { User, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import { useAuth } from "@/lib/AuthContext";
@@ -92,7 +92,7 @@ export default function Register() {
 
   return (
     <AuthLayout
-      icon={UserPlus}
+      logoSrc="/icon-192.png"
       title={t('createAccount') || "Create your account"}
       subtitle={t('registerSubtitle') || "Sign up to start tracking your mood"}
       footer={

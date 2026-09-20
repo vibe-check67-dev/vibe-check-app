@@ -34,6 +34,13 @@ export default function Checkin() {
   const [error, setError] = useState('');
 
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const timerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const steps = [
     {
@@ -130,14 +137,24 @@ export default function Checkin() {
 
   return (
     <div className="flex flex-col items-center min-h-[60vh] justify-center">
-      {/* Progress bar */}
-      <div className="w-full max-w-xs mb-8">
+      {/* Progress bar & Step Counter */}
+      <div className="w-full max-w-xs mb-8 space-y-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold px-1">
+          <span>
+            {step < steps.length
+              ? `${lang === 'th' ? 'คำถามที่' : 'Step'} ${step + 1} / ${steps.length}`
+              : (lang === 'th' ? 'ขั้นตอนสุดท้าย' : 'Final Step')}
+          </span>
+          <span className="text-primary font-bold">
+            {Math.round(((step + 1) / (steps.length + 1)) * 100)}%
+          </span>
+        </div>
         <div className="flex items-center gap-1">
           {[...Array(steps.length + 1)].map((_, i) => (
             <div
               key={i}
-              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                i <= step ? 'bg-primary' : 'bg-border'
+              className={`h-2 flex-1 rounded-full transition-all duration-300 ${
+                i <= step ? 'bg-gradient-to-r from-primary to-amber-500' : 'bg-muted/70 dark:bg-muted/40'
               }`}
             />
           ))}
@@ -154,10 +171,10 @@ export default function Checkin() {
         {!isTextStep && currentStep ? (
           <motion.div
             key={step}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.22 }}
             className="w-full"
           >
             <EmojiSelector
@@ -166,23 +183,23 @@ export default function Checkin() {
               title={currentStep.title}
               value={currentStep.value}
               onChange={(val) => {
-                if (isTransitioning) return;
-                setIsTransitioning(true);
                 currentStep.onChange(val);
-                // Auto-advance after selection with a small delay
-                setTimeout(() => {
+                if (timerRef.current) clearTimeout(timerRef.current);
+                setIsTransitioning(true);
+                timerRef.current = setTimeout(() => {
                   setStep((s) => Math.min(s + 1, steps.length));
                   setIsTransitioning(false);
-                }, 300);
+                }, 320);
               }}
             />
           </motion.div>
         ) : (
           <motion.div
             key="text"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.22 }}
             className="w-full space-y-4"
           >
             <h3 className="text-lg font-semibold text-foreground text-center">
@@ -213,16 +230,42 @@ export default function Checkin() {
         )}
       </AnimatePresence>
 
-      {/* Back button */}
-      {step > 0 && (
-        <button
-          disabled={isTransitioning}
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
-          className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
-        >
-          ← {t('back')}
-        </button>
-      )}
+      {/* Smart Bottom Navigation: Back & Next */}
+      <div className="flex items-center justify-between w-full max-w-sm mt-8 px-2">
+        {step > 0 ? (
+          <button
+            type="button"
+            disabled={isTransitioning}
+            onClick={() => {
+              if (timerRef.current) clearTimeout(timerRef.current);
+              setIsTransitioning(false);
+              setStep((s) => Math.max(0, s - 1));
+            }}
+            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all cursor-pointer disabled:opacity-50"
+          >
+            ← {t('back')}
+          </button>
+        ) : (
+          <div />
+        )}
+
+        {/* Next button: visible when this step has already been answered */}
+        {!isTextStep && currentStep && currentStep.value > 0 && (
+          <button
+            type="button"
+            disabled={isTransitioning}
+            onClick={() => {
+              if (timerRef.current) clearTimeout(timerRef.current);
+              setIsTransitioning(false);
+              setStep((s) => Math.min(s + 1, steps.length));
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-primary hover:bg-primary/10 transition-all cursor-pointer"
+          >
+            <span>{t('next')}</span>
+            <span>→</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

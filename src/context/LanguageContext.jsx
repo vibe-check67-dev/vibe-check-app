@@ -278,6 +278,26 @@ const translations = {
   time: { en: 'Time', th: 'เวลา' },
   reminderBanner: { en: "You haven't checked in today. Take a minute to log your mood!", th: 'วันนี้คุณยังไม่ได้เช็คอินอารมณ์เลย แวะมาบันทึกความรู้สึกกันเถอะ!' },
   pleaseAnswerAll: { en: 'Please answer all required questions before submitting.', th: 'กรุณาตอบคำถามที่จำเป็นให้ครบถ้วนก่อนส่ง' },
+
+  // Theme & Settings
+  darkMode: { en: 'Dark Mode', th: 'โหมดมืด' },
+  lightMode: { en: 'Light Mode', th: 'โหมดสว่าง' },
+  themeActive: { en: 'Active', th: 'เปิดอยู่' },
+  themeInactive: { en: 'Inactive', th: 'ปิดอยู่' },
+  appearanceAndLanguage: { en: 'Appearance & Language', th: 'การแสดงผลและภาษา' },
+  healthProfile: { en: 'Personal Health Profile', th: 'ข้อมูลโปรไฟล์สุขภาพ' },
+  healthProfileDesc: { en: 'Help AI give tailored food, music, and activity tips', th: 'ช่วยให้ AI แนะนำอาหาร ดนตรี และกิจกรรมได้แม่นยำยิ่งขึ้น' },
+  accountAndSecurity: { en: 'Account & Security', th: 'บัญชีและความปลอดภัย' },
+  viewAppIntro: { en: 'View App Intro', th: 'ดูหน้าแนะนำแอปอีกครั้ง' },
+
+  // Quick Check-in & History
+  confirmQuickCheckin: { en: 'Confirm Check-in', th: 'ยืนยันการเช็คอิน' },
+  tapToChange: { en: 'Tap another emoji to switch', th: 'แตะเพื่อเปลี่ยนอารมณ์ได้' },
+  cancelSelection: { en: 'Cancel', th: 'ยกเลิก' },
+  totalCheckinsThisMonth: { en: 'Monthly check-ins', th: 'เช็คอินเดือนนี้' },
+  legendLow: { en: 'Low', th: 'น้อย' },
+  legendHigh: { en: 'Great', th: 'ดีเยี่ยม' },
+  averageDimensionScores: { en: '7-Day Dimension Averages', th: 'ค่าเฉลี่ยแต่ละมิติใน 7 วัน' },
 };
 
 export function LanguageProvider({ children }) {

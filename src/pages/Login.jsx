@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import { useAuth } from "@/lib/AuthContext";
@@ -35,7 +35,7 @@ export default function Login() {
 
   return (
     <AuthLayout
-      icon={LogIn}
+      logoSrc="/icon-192.png"
       title={t('welcomeBack') || "Welcome back"}
       subtitle={t('loginSubtitle') || "Log in to your account"}
       footer={
